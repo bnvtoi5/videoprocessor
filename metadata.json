@@ -1,0 +1,6 @@
+{
+  "name": "SpatioTemporal Video Processing Lab",
+  "description": "Research and experimental computer vision laboratory for spatiotemporal video stabilization, background/foreground separation, and quantitative algorithm benchmarking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
