@@ -4,52 +4,68 @@ export interface MetricCardProps {
   label: string;
   value: string | number;
   unit?: string;
-  description: string;
+  delta?: string;
   deltaText?: string;
-  deltaTone?: 'positive' | 'warning' | 'neutral';
+  deltaTone?: 'positive' | 'negative' | 'neutral' | 'warning' | string;
+  accent?: 'cyan' | 'emerald' | 'amber' | 'rose' | 'slate';
+  subtitle?: string;
+  description?: string;
 }
+
+const ACCENT_BORDER: Record<NonNullable<MetricCardProps['accent']>, string> = {
+  cyan: 'border-l-blue-600',
+  emerald: 'border-l-emerald-600',
+  amber: 'border-l-amber-500',
+  rose: 'border-l-rose-600',
+  slate: 'border-l-slate-400',
+};
 
 export const MetricCard: React.FC<MetricCardProps> = ({
   label,
   value,
   unit,
-  description,
+  delta,
   deltaText,
-  deltaTone = 'neutral',
+  deltaTone,
+  accent = 'cyan',
+  subtitle,
+  description,
 }) => {
-  const toneColor =
+  const effectiveAccent: NonNullable<MetricCardProps['accent']> =
     deltaTone === 'positive'
-      ? 'text-emerald-400'
+      ? 'emerald'
+      : deltaTone === 'negative'
+      ? 'rose'
       : deltaTone === 'warning'
-      ? 'text-amber-400'
-      : 'text-slate-400';
+      ? 'amber'
+      : accent;
+
+  const sub = subtitle ?? description;
+  const del = delta ?? deltaText;
 
   return (
-    <div className="bg-[#111827] border border-slate-800 p-4 flex flex-col justify-between">
-      <div>
-        <div className="text-xs font-medium text-slate-400 tracking-wide">
-          {label}
-        </div>
-        <div className="mt-1.5 flex items-baseline gap-1.5">
-          <span className="text-2xl font-mono font-semibold text-slate-100 tabular-nums">
-            {value}
-          </span>
-          {unit && (
-            <span className="text-xs font-mono text-slate-400">{unit}</span>
-          )}
-        </div>
+    <div
+      className={`bg-white border border-slate-200 border-l-2 ${ACCENT_BORDER[effectiveAccent]} p-3 flex flex-col justify-between shadow-2xs`}
+    >
+      <div className="text-[11px] font-medium text-slate-500 uppercase tracking-wider truncate">
+        {label}
       </div>
-
-      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-col gap-1">
-        {deltaText && (
-          <div className={`text-xs font-mono tabular-nums ${toneColor}`}>
-            {deltaText}
-          </div>
+      <div className="mt-1.5 flex items-baseline gap-1.5">
+        <span className="text-lg font-mono font-bold text-slate-900 tabular-nums">
+          {value}
+        </span>
+        {unit && (
+          <span className="text-xs font-mono text-slate-500">{unit}</span>
         )}
-        <div className="text-xs text-slate-400 leading-relaxed">
-          {description}
-        </div>
       </div>
+      {(del || sub) && (
+        <div className="mt-1 flex flex-col gap-0.5 text-[11px] font-mono text-slate-600">
+          {del && (
+            <span className="text-slate-800 font-semibold truncate">{del}</span>
+          )}
+          {sub && <span className="text-slate-500 truncate">{sub}</span>}
+        </div>
+      )}
     </div>
   );
 };

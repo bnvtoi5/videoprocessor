@@ -19,35 +19,67 @@ export function rgbaToGrayscale(
 }
 
 /**
- * Pure TypeScript Shi-Tomasi Good Features to Track + Lucas-Kanade Optical Flow
- * used when OpenCV WASM runtime is not passed (e.g., Node.js unit tests) or as verified fallback.
+ * Detects Shi-Tomasi corners (minimum eigenvalue of the 3x3 Sobel structure tensor)
+ * while automatically excluding replicated border strips introduced by affine warping.
  */
-export function trackFeaturesTypeScript(
-  prevGray: Uint8Array,
-  currGray: Uint8Array,
+export function detectShiTomasiCorners(
+  gray: Uint8Array,
   width: number,
   height: number,
   params: StabilizationParams
-): TrackedFeaturePoint[] {
-  const border = 8;
+): { x: number; y: number; Ix: Float32Array; Iy: Float32Array } & {
+  corners: { x: number; y: number }[];
+} {
+  const marginRatio = Math.max(0.08, Math.min(0.2, params.cropRatio || 0.1));
+  const borderX = Math.max(10, Math.round(width * marginRatio));
+  const borderY = Math.max(10, Math.round(height * marginRatio));
   const Ix = new Float32Array(width * height);
   const Iy = new Float32Array(width * height);
   const cornerScore = new Float32Array(width * height);
 
-  // Compute spatial gradients
+  // Compute 3x3 Sobel spatial gradients
   for (let y = 1; y < height - 1; y++) {
-    const row = y * width;
+    const r0 = (y - 1) * width;
+    const r1 = y * width;
+    const r2 = (y + 1) * width;
     for (let x = 1; x < width - 1; x++) {
-      const idx = row + x;
-      Ix[idx] = (prevGray[idx + 1] - prevGray[idx - 1]) * 0.5;
-      Iy[idx] = (prevGray[idx + width] - prevGray[idx - width]) * 0.5;
+      Ix[r1 + x] =
+        (-gray[r0 + x - 1] +
+          gray[r0 + x + 1] -
+          2 * gray[r1 + x - 1] +
+          2 * gray[r1 + x + 1] -
+          gray[r2 + x - 1] +
+          gray[r2 + x + 1]) *
+        0.125;
+      Iy[r1 + x] =
+        (-gray[r0 + x - 1] -
+          2 * gray[r0 + x] -
+          gray[r0 + x + 1] +
+          gray[r2 + x - 1] +
+          2 * gray[r2 + x] +
+          gray[r2 + x + 1]) *
+        0.125;
     }
   }
 
   let maxScore = 0;
   // 3x3 structure tensor minimum eigenvalue (Shi-Tomasi criterion)
-  for (let y = border; y < height - border; y += 2) {
-    for (let x = border; x < width - border; x += 2) {
+  for (let y = borderY; y < height - borderY; y += 2) {
+    for (let x = borderX; x < width - borderX; x += 2) {
+      const idx = y * width + x;
+
+      // Skip replicated border strips created by affine warping (constant along border ray)
+      if (
+        (gray[idx] === gray[y * width] && gray[idx - 2] === gray[y * width]) ||
+        (gray[idx] === gray[y * width + width - 1] &&
+          gray[idx + 2] === gray[y * width + width - 1]) ||
+        (gray[idx] === gray[x] && gray[(y - 2) * width + x] === gray[x]) ||
+        (gray[idx] === gray[(height - 1) * width + x] &&
+          gray[(y + 2) * width + x] === gray[(height - 1) * width + x])
+      ) {
+        continue;
+      }
+
       let sxx = 0;
       let syy = 0;
       let sxy = 0;
@@ -66,21 +98,20 @@ export function trackFeaturesTypeScript(
       const det = sxx * syy - sxy * sxy;
       const disc = Math.sqrt(Math.max(0, trace * trace * 0.25 - det));
       const lambdaMin = trace * 0.5 - disc;
-      const idx = y * width + x;
       cornerScore[idx] = lambdaMin;
       if (lambdaMin > maxScore) maxScore = lambdaMin;
     }
   }
 
   if (maxScore <= 1e-3) {
-    return [];
+    return { x: 0, y: 0, Ix, Iy, corners: [] };
   }
 
   const threshold = maxScore * Math.max(0.005, Math.min(0.5, params.qualityLevel));
   const candidates: { x: number; y: number; score: number }[] = [];
 
-  for (let y = border; y < height - border; y += 2) {
-    for (let x = border; x < width - border; x += 2) {
+  for (let y = borderY; y < height - borderY; y += 2) {
+    for (let x = borderX; x < width - borderX; x += 2) {
       const s = cornerScore[y * width + x];
       if (s >= threshold) {
         candidates.push({ x, y, score: s });
@@ -90,13 +121,13 @@ export function trackFeaturesTypeScript(
 
   candidates.sort((a, b) => b.score - a.score);
 
-  const selected: { x: number; y: number }[] = [];
+  const corners: { x: number; y: number }[] = [];
   const minDistSq = params.minDistance * params.minDistance;
 
   for (const c of candidates) {
-    if (selected.length >= params.maxCorners) break;
+    if (corners.length >= params.maxCorners) break;
     let tooClose = false;
-    for (const s of selected) {
+    for (const s of corners) {
       const dx = c.x - s.x;
       const dy = c.y - s.y;
       if (dx * dx + dy * dy < minDistSq) {
@@ -105,8 +136,33 @@ export function trackFeaturesTypeScript(
       }
     }
     if (!tooClose) {
-      selected.push({ x: c.x, y: c.y });
+      corners.push({ x: c.x, y: c.y });
     }
+  }
+
+  return { x: 0, y: 0, Ix, Iy, corners };
+}
+
+/**
+ * Pure TypeScript Shi-Tomasi Good Features to Track + Lucas-Kanade Optical Flow
+ * used when OpenCV WASM runtime is not passed (e.g., Node.js unit tests) or as verified fallback.
+ */
+export function trackFeaturesTypeScript(
+  prevGray: Uint8Array,
+  currGray: Uint8Array,
+  width: number,
+  height: number,
+  params: StabilizationParams
+): TrackedFeaturePoint[] {
+  const { Ix, Iy, corners: selected } = detectShiTomasiCorners(
+    prevGray,
+    width,
+    height,
+    params
+  );
+
+  if (selected.length === 0) {
+    return [];
   }
 
   // Iterative Lucas-Kanade optical flow over 7x7 window
@@ -209,8 +265,9 @@ export function trackFeaturesTypeScript(
 }
 
 /**
- * Detects Shi-Tomasi corners with cv.goodFeaturesToTrack and tracks them with
- * cv.calcOpticalFlowPyrLK when OpenCV.js WASM is available, with guaranteed cv.Mat cleanup.
+ * Detects Shi-Tomasi corners and tracks them with OpenCV.js WASM cv.calcOpticalFlowPyrLK
+ * (3-level pyramid, 21x21 window, forward-backward consistency check < 1.5 px),
+ * with guaranteed cv.Mat cleanup.
  */
 export function detectAndTrackOpticalFlow(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -221,16 +278,24 @@ export function detectAndTrackOpticalFlow(
   height: number,
   params: StabilizationParams
 ): { points: TrackedFeaturePoint[]; engine: string } {
-  const canUseOpenCv =
+  const canUseOpenCvPyrLK =
     cv &&
     typeof cv.Mat === 'function' &&
-    typeof cv.goodFeaturesToTrack === 'function' &&
+    typeof cv.matFromArray === 'function' &&
     typeof cv.calcOpticalFlowPyrLK === 'function';
 
-  if (!canUseOpenCv) {
+  if (!canUseOpenCvPyrLK) {
     return {
       points: trackFeaturesTypeScript(prevGray, currGray, width, height, params),
       engine: 'TypeScript Shi-Tomasi + Pyramidal LK',
+    };
+  }
+
+  const { corners } = detectShiTomasiCorners(prevGray, width, height, params);
+  if (corners.length === 0) {
+    return {
+      points: [],
+      engine: 'OpenCV.js WASM (Shi-Tomasi + calcOpticalFlowPyrLK)',
     };
   }
 
@@ -247,43 +312,32 @@ export function detectAndTrackOpticalFlow(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let err: any = null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mask: any = null;
+  let p0Back: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let stBack: any = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let errBack: any = null;
 
   try {
     prevMat = cv.matFromArray(height, width, cv.CV_8UC1, prevGray);
     currMat = cv.matFromArray(height, width, cv.CV_8UC1, currGray);
-    p0 = new cv.Mat();
-    mask = new cv.Mat();
 
-    cv.goodFeaturesToTrack(
-      prevMat,
-      p0,
-      Math.max(10, Math.round(params.maxCorners)),
-      Math.max(0.001, Math.min(0.5, params.qualityLevel)),
-      Math.max(1, params.minDistance),
-      mask,
-      3,
-      false,
-      0.04
-    );
-
-    if (p0.rows === 0) {
-      return {
-        points: [],
-        engine: 'OpenCV.js WASM (goodFeaturesToTrack + calcOpticalFlowPyrLK)',
-      };
+    const p0Data = new Float32Array(corners.length * 2);
+    for (let i = 0; i < corners.length; i++) {
+      p0Data[i * 2] = corners[i].x;
+      p0Data[i * 2 + 1] = corners[i].y;
     }
-
+    p0 = cv.matFromArray(corners.length, 1, cv.CV_32FC2, p0Data);
     p1 = new cv.Mat();
     st = new cv.Mat();
     err = new cv.Mat();
 
-    const winSize = new cv.Size(15, 15);
-    const maxLevel = 2;
+    const winSize = new cv.Size(21, 21);
+    const maxLevel = 3;
     const criteria = new cv.TermCriteria(
       cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT,
-      20,
-      0.03
+      30,
+      0.01
     );
 
     cv.calcOpticalFlowPyrLK(
@@ -298,22 +352,39 @@ export function detectAndTrackOpticalFlow(
       criteria
     );
 
-    const points: TrackedFeaturePoint[] = [];
-    const numPts = p0.rows;
+    // Forward-backward bidirectional tracking check to reject occluded or border-drifting points
+    p0Back = new cv.Mat();
+    stBack = new cv.Mat();
+    errBack = new cv.Mat();
+    cv.calcOpticalFlowPyrLK(
+      currMat,
+      prevMat,
+      p1,
+      p0Back,
+      stBack,
+      errBack,
+      winSize,
+      maxLevel,
+      criteria
+    );
 
-    for (let i = 0; i < numPts; i++) {
-      const status = st.data[i];
-      if (status === 1) {
-        const prevX = p0.data32F[i * 2];
-        const prevY = p0.data32F[i * 2 + 1];
+    const points: TrackedFeaturePoint[] = [];
+    for (let i = 0; i < corners.length; i++) {
+      if (st.data[i] === 1 && stBack.data[i] === 1) {
+        const prevX = corners[i].x;
+        const prevY = corners[i].y;
         const currX = p1.data32F[i * 2];
         const currY = p1.data32F[i * 2 + 1];
+        const backX = p0Back.data32F[i * 2];
+        const backY = p0Back.data32F[i * 2 + 1];
+        const fbError = Math.hypot(backX - prevX, backY - prevY);
 
         if (
-          currX >= 0 &&
-          currX < width &&
-          currY >= 0 &&
-          currY < height &&
+          fbError < 1.5 &&
+          currX >= 6 &&
+          currX < width - 6 &&
+          currY >= 6 &&
+          currY < height - 6 &&
           Math.hypot(currX - prevX, currY - prevY) < Math.max(width, height) * 0.3
         ) {
           points.push({
@@ -329,7 +400,7 @@ export function detectAndTrackOpticalFlow(
 
     return {
       points,
-      engine: 'OpenCV.js WASM (goodFeaturesToTrack + calcOpticalFlowPyrLK)',
+      engine: 'OpenCV.js WASM (Shi-Tomasi + calcOpticalFlowPyrLK)',
     };
   } catch {
     return {
@@ -343,6 +414,8 @@ export function detectAndTrackOpticalFlow(
     if (p1) p1.delete();
     if (st) st.delete();
     if (err) err.delete();
-    if (mask) mask.delete();
+    if (p0Back) p0Back.delete();
+    if (stBack) stBack.delete();
+    if (errBack) errBack.delete();
   }
 }

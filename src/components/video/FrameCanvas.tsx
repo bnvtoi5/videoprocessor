@@ -43,11 +43,11 @@ export const FrameCanvas: React.FC<FrameCanvasProps> = ({
     if (!ctx) return;
 
     if (!rgba || rgba.length !== width * height * 4) {
-      ctx.fillStyle = '#07090E';
+      ctx.fillStyle = '#F1F5F9';
       ctx.fillRect(0, 0, width, height);
       ctx.fillStyle = '#64748B';
       ctx.font = '12px "JetBrains Mono", monospace';
-      ctx.fillText('No frame buffer', 16, height / 2);
+      ctx.fillText('Chưa có khung hình', 16, height / 2);
       return;
     }
 
@@ -78,7 +78,7 @@ export const FrameCanvas: React.FC<FrameCanvasProps> = ({
       }
     }
 
-    // Draw connected component bounding boxes (strictly labeled as Moving Component #id)
+    // Draw connected component bounding boxes
     if (showBoundingBoxes && boundingBoxes && boundingBoxes.length > 0) {
       ctx.font = '10px "JetBrains Mono", monospace';
       for (const box of boundingBoxes) {
@@ -86,9 +86,9 @@ export const FrameCanvas: React.FC<FrameCanvasProps> = ({
         ctx.lineWidth = 1.25;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-        const tag = `Moving Obj #${box.id} (${box.area}px)`;
+        const tag = `Obj #${box.id} (${box.area}px)`;
         const labelY = Math.max(11, box.y - 3);
-        ctx.fillStyle = 'rgba(11, 14, 23, 0.82)';
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
         ctx.fillRect(box.x, labelY - 10, Math.min(width - box.x, tag.length * 6.2 + 6), 12);
         ctx.fillStyle = '#FBBF24';
         ctx.fillText(tag, box.x + 3, labelY - 1);
@@ -107,18 +107,18 @@ export const FrameCanvas: React.FC<FrameCanvasProps> = ({
   ]);
 
   return (
-    <div className="bg-[#111827] border border-slate-800 flex flex-col">
-      <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-slate-200 truncate">
+    <div className="bg-white border border-slate-200 flex flex-col">
+      <div className="px-3 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+        <span className="text-xs font-semibold text-slate-800 truncate">
           {title}
         </span>
         {subtitle && (
-          <span className="text-[11px] font-mono text-slate-400 tabular-nums whitespace-nowrap">
+          <span className="text-[11px] font-mono text-slate-500 tabular-nums whitespace-nowrap">
             {subtitle}
           </span>
         )}
       </div>
-      <div className="relative bg-[#07090E] aspect-video w-full flex items-center justify-center overflow-hidden">
+      <div className="relative bg-slate-100 aspect-video w-full flex items-center justify-center overflow-hidden">
         <canvas
           ref={canvasRef}
           data-testid={testId}

@@ -322,7 +322,8 @@ export function runStabilizationPipeline(
   const trajectories = computeSmoothedTrajectory(
     transforms,
     params.smoothingRadius,
-    params.smoothRotation
+    params.smoothRotation,
+    params.trajectoryMode ?? 'gaussian_smooth'
   );
 
   // Warp each frame with corrective transform

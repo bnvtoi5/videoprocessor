@@ -19,6 +19,7 @@ export interface StabilizationParams {
   cropRatio: number; // 0.0 to 0.20 border crop compensation
   eccIterations: number;
   eccEps: number;
+  trajectoryMode?: 'gaussian_smooth' | 'moving_average' | 'rigid_lock' | 'zero_correction';
 }
 
 export interface FrameDiffParams {
@@ -153,6 +154,7 @@ export interface BackgroundFrameMetrics {
   flickerRatio: number;
   processingTimeMs: number;
   componentCount: number;
+  rawComponentCount?: number;
 }
 
 export interface BackgroundRunResult {

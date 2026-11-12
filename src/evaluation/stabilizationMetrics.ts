@@ -1,6 +1,8 @@
-import { FrameTransform, TrajectoryState } from '../types/algorithm';
+import { FrameTransform, StabilizationParams, TrajectoryState } from '../types/algorithm';
 import { CameraMotionGroundTruthMetrics } from '../types/research';
 import { TrueCameraTransform } from '../types/video';
+import { detectAndTrackOpticalFlow, rgbaToGrayscale } from '../algorithms/stabilization/opticalFlow';
+import { estimateSimilarityTransformRansac } from '../algorithms/stabilization/ransac';
 
 export interface TrajectoryJitterMetrics {
   rawTranslationJitterRms: number;
@@ -79,6 +81,60 @@ export function computeTrajectoryJitterMetrics(
     rawAccelerationRms: rawTranslationJitterRms,
     stabilizedAccelerationRms: stabilizedTranslationJitterRms,
   };
+}
+
+/**
+ * Independently re-measures residual translation Jitter RMS (px) on the warped output frames
+ * using a clean LK + RANSAC pass (inlier threshold = 2.5 px).
+ * As highlighted in the DSP501 Research Report (Sections 12.2–12.8 & 13.1), trajectory-based
+ * Jitter RMS only measures how smooth P_smooth(t) is, whereas post-warp re-measurement
+ * detects actual residual frame shake when an estimator fails (e.g., D2 without RANSAC or ECC divergence).
+ */
+export function computeRemeasuredOutputJitterRms(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cv: any,
+  outputFramesRgba: Uint8ClampedArray[],
+  width: number,
+  height: number,
+  baseParams: StabilizationParams
+): number {
+  const n = outputFramesRgba.length;
+  if (n < 3) return 0;
+
+  const evalParams: StabilizationParams = {
+    ...baseParams,
+    maxCorners: Math.max(120, baseParams.maxCorners),
+    cropRatio: Math.max(0.12, baseParams.cropRatio || 0.12),
+    ransacThreshold: 2.5,
+  };
+
+  const accX: number[] = [0];
+  const accY: number[] = [0];
+  let curX = 0;
+  let curY = 0;
+
+  const cx = width * 0.5;
+  const cy = height * 0.5;
+  let prevGray = rgbaToGrayscale(outputFramesRgba[0], width, height);
+
+  for (let i = 1; i < n; i++) {
+    const currGray = rgbaToGrayscale(outputFramesRgba[i], width, height);
+    const flowRes = detectAndTrackOpticalFlow(cv, prevGray, currGray, width, height, evalParams);
+    const ransacRes = estimateSimilarityTransformRansac(flowRes.points, 2.5);
+
+    const cosA = Math.cos(ransacRes.da);
+    const sinA = Math.sin(ransacRes.da);
+    const centerDx = ransacRes.dx + (cosA * cx - sinA * cy) - cx;
+    const centerDy = ransacRes.dy + (sinA * cx + cosA * cy) - cy;
+
+    curX += centerDx;
+    curY += centerDy;
+    accX.push(curX);
+    accY.push(curY);
+    prevGray = currGray;
+  }
+
+  return Math.hypot(secondOrderDifferenceRms(accX), secondOrderDifferenceRms(accY));
 }
 
 /**

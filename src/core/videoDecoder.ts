@@ -7,10 +7,10 @@ import {
 } from '../types/video';
 
 export const DEFAULT_VIDEO_INPUT_CONFIG: VideoInputConfig = {
-  maxFrames: 90,
-  maxWidth: 480,
-  targetFps: 15,
-  maxDurationSec: 12,
+  maxFrames: 36,
+  maxWidth: 320,
+  targetFps: 12,
+  maxDurationSec: 6,
 };
 
 /**
@@ -108,6 +108,9 @@ export async function probeVideoFileMetadata(
       resourceWarning: warnings.length > 0 ? warnings.join(' ') : null,
     };
   } finally {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
     URL.revokeObjectURL(url);
   }
 }
@@ -215,6 +218,9 @@ export async function decodeUploadedVideoFile(
       resourceWarning,
     };
   } finally {
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
     URL.revokeObjectURL(url);
   }
 }

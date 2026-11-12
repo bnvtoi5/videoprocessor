@@ -125,7 +125,8 @@ export function computeFrameSegmentationMetrics(
   flickerRatio: number,
   processingTimeMs: number,
   componentCount: number,
-  validityMask?: Uint8Array
+  validityMask?: Uint8Array,
+  rawComponentCount?: number
 ): BackgroundFrameMetrics {
   const n = predictedMask.length;
   let fgCount = 0;
@@ -149,6 +150,7 @@ export function computeFrameSegmentationMetrics(
       flickerRatio,
       processingTimeMs,
       componentCount,
+      rawComponentCount,
     };
   }
 
@@ -172,5 +174,118 @@ export function computeFrameSegmentationMetrics(
     flickerRatio,
     processingTimeMs,
     componentCount,
+    rawComponentCount,
   };
 }
+
+/**
+ * Computes pixel-level Difference Mask between an experimental/ablation variant mask and Baseline (D0) mask:
+ * - Agreement Background (both 0): Light Slate [248, 250, 252, 255]
+ * - Agreement Foreground (both 255): Dark Slate [30, 41, 59, 255]
+ * - Variant Added FG (Variant=255, Baseline=0): Crimson Red [220, 38, 38, 255]
+ * - Variant Missed FG (Variant=0, Baseline=255): Cobalt Blue [37, 99, 235, 255]
+ */
+export function computeMaskDifferenceVsBaseline(
+  variantMask: Uint8Array,
+  baselineMask: Uint8Array,
+  includeRgba = true,
+  expectedDimensions?: { width: number; height: number; frameIndex?: number }
+): {
+  diffRgba: Uint8ClampedArray;
+  diffPixelCount: number;
+  diffPercent: number;
+  addedFgCount: number;
+  missedFgCount: number;
+} {
+  if (variantMask.length !== baselineMask.length) {
+    throw new Error(
+      `[Pixel XOR Dimension Mismatch] Không thể tính Pixel XOR giữa hai binary mask có kích thước khác nhau (variantMask.length=${variantMask.length}, baselineMask.length=${baselineMask.length}${
+        expectedDimensions?.frameIndex !== undefined
+          ? `, frame=${expectedDimensions.frameIndex}`
+          : ''
+      }).`
+    );
+  }
+  if (
+    expectedDimensions &&
+    variantMask.length !== expectedDimensions.width * expectedDimensions.height
+  ) {
+    throw new Error(
+      `[Pixel XOR Resolution Mismatch] Kích thước binary mask (${variantMask.length} px) không khớp độ phân giải khung hình ${expectedDimensions.width}×${expectedDimensions.height} (${
+        expectedDimensions.width * expectedDimensions.height
+      } px)${
+        expectedDimensions.frameIndex !== undefined
+          ? ` tại frame #${expectedDimensions.frameIndex}`
+          : ''
+      }.`
+    );
+  }
+
+  const n = variantMask.length;
+  const diffRgba = includeRgba ? new Uint8ClampedArray(n * 4) : new Uint8ClampedArray(0);
+  let diffPixelCount = 0;
+  let addedFgCount = 0;
+  let missedFgCount = 0;
+
+  if (!includeRgba) {
+    for (let i = 0; i < n; i++) {
+      const vFg = variantMask[i] >= 200;
+      const bFg = baselineMask[i] >= 200;
+      if (vFg && !bFg) {
+        diffPixelCount++;
+        addedFgCount++;
+      } else if (!vFg && bFg) {
+        diffPixelCount++;
+        missedFgCount++;
+      }
+    }
+    return {
+      diffRgba,
+      diffPixelCount,
+      diffPercent: n > 0 ? (100 * diffPixelCount) / n : 0,
+      addedFgCount,
+      missedFgCount,
+    };
+  }
+
+  for (let i = 0; i < n; i++) {
+    const vFg = variantMask[i] >= 200;
+    const bFg = baselineMask[i] >= 200;
+    const idx = i << 2;
+
+    if (vFg && !bFg) {
+      diffPixelCount++;
+      addedFgCount++;
+      diffRgba[idx] = 220;
+      diffRgba[idx + 1] = 38;
+      diffRgba[idx + 2] = 38;
+      diffRgba[idx + 3] = 255;
+    } else if (!vFg && bFg) {
+      diffPixelCount++;
+      missedFgCount++;
+      diffRgba[idx] = 37;
+      diffRgba[idx + 1] = 99;
+      diffRgba[idx + 2] = 235;
+      diffRgba[idx + 3] = 255;
+    } else if (vFg && bFg) {
+      diffRgba[idx] = 30;
+      diffRgba[idx + 1] = 41;
+      diffRgba[idx + 2] = 59;
+      diffRgba[idx + 3] = 255;
+    } else {
+      diffRgba[idx] = 248;
+      diffRgba[idx + 1] = 250;
+      diffRgba[idx + 2] = 252;
+      diffRgba[idx + 3] = 255;
+    }
+  }
+
+  return {
+    diffRgba,
+    diffPixelCount,
+    diffPercent: n > 0 ? (100 * diffPixelCount) / n : 0,
+    addedFgCount,
+    missedFgCount,
+  };
+}
+

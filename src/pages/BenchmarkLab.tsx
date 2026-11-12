@@ -126,12 +126,12 @@ export const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Benchmark Protocol Bar */}
-      <div className="bg-[#111827] border border-slate-800 p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-base font-bold text-slate-100">
+          <h1 className="text-base font-bold text-slate-900">
             Module D: Quantitative Evaluation & Benchmark Lab
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5">
             Standardized benchmark protocol: identical video input, resolution ({session.metadata.processingWidth}×{session.metadata.processingHeight}), frame count ({session.frames.length}), warm-up initialization, and median algorithm runtime measurement.
           </p>
         </div>
@@ -143,7 +143,7 @@ export const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
             onChange={(e) =>
               onChangeNumTrialRuns(Number(e.target.value) as 1 | 3)
             }
-            className="bg-[#0B0E17] border border-slate-700 px-3 py-2 text-xs font-mono text-slate-200"
+            className="bg-white border border-slate-300 px-3 py-2 text-xs font-mono text-slate-800"
           >
             <option value={1}>1 Trial Run (Fast Check)</option>
             <option value={3}>3 Trial Runs (Median Protocol)</option>
@@ -224,20 +224,20 @@ export const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
 
       {/* Sortable Algorithm Comparison Table */}
       {currentRecord && (
-        <div className="bg-[#111827] border border-slate-800 p-4 space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+        <div className="bg-white border border-slate-200 p-4 shadow-xs space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3">
             <div>
-              <h2 className="text-sm font-semibold text-slate-100">
+              <h2 className="text-sm font-bold text-slate-900">
                 Cross-Algorithm Quantitative Comparison Table
               </h2>
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-slate-600">
                 Separates pure Algorithm Processing Time (ms/frame) from Total Pipeline Time (ms). Non-applicable metrics are explicitly marked N/A.
               </p>
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5 text-xs">
-              <span className="text-slate-400 flex items-center gap-1 mr-1">
-                <ArrowUpDown className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-slate-600 flex items-center gap-1 mr-1">
+                <ArrowUpDown className="w-3.5 h-3.5 text-blue-600" />
                 Sort by:
               </span>
               {(
@@ -256,8 +256,8 @@ export const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
                   onClick={() => setSortKey(btn.id)}
                   className={`px-2.5 py-1 border text-xs font-mono cursor-pointer ${
                     sortKey === btn.id
-                      ? 'bg-cyan-950/70 border-cyan-500 text-cyan-300'
-                      : 'bg-[#0B0E17] border-slate-700 text-slate-300 hover:border-slate-500'
+                      ? 'bg-blue-50 border-blue-600 text-blue-900 font-bold'
+                      : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
                   {btn.label}
@@ -269,7 +269,7 @@ export const BenchmarkLab: React.FC<BenchmarkLabProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-xs text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-mono bg-[#0B0E17]">
+                <tr className="border-b border-slate-300 text-slate-700 font-mono bg-slate-50">
                   <th className="py-2.5 px-3">Algorithm</th>
                   <th className="py-2.5 px-3">Category</th>
                   <th className="py-2.5 px-3 text-right">

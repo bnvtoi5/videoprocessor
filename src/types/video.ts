@@ -114,3 +114,17 @@ export interface DecodedVideoSession {
   syntheticConfig?: SyntheticGeneratorConfig;
   createdAt: string;
 }
+
+export interface PlaylistVideoItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  sourceType: 'synthetic' | 'upload';
+  scenarioId?: SyntheticScenarioId;
+  customConfig?: Partial<SyntheticGeneratorConfig>;
+  session?: DecodedVideoSession;
+  videoUrl?: string;
+  fileName?: string;
+  selected: boolean;
+}
+

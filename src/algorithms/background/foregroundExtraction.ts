@@ -197,7 +197,8 @@ export function runBackgroundPipeline(
   enableMorphology: boolean,
   morphologyConfig: MorphologyConfig,
   displayConfig: ForegroundDisplayConfig,
-  groundTruthMasks?: Map<number, GroundTruthMask>
+  groundTruthMasks?: Map<number, GroundTruthMask>,
+  lightweightMode = false
 ): BackgroundRunResult {
   const n = frames.length;
   if (n === 0) {
@@ -245,6 +246,8 @@ export function runBackgroundPipeline(
   const frameMetrics = [];
 
   let totalTimeMs = 0;
+  const midIdx = Math.min(n - 1, Math.max(1, Math.floor(n / 2)));
+  const emptyRgba = new Uint8ClampedArray(0);
 
   for (let i = 0; i < n; i++) {
     const tMorph0 = performance.now();
@@ -252,11 +255,13 @@ export function runBackgroundPipeline(
 
     let cleanedMask: Uint8Array;
     let boxes: MovingComponentBox[];
+    let rawComponentCount = 0;
 
     if (enableMorphology) {
       const morphRes = applyMorphologyPipeline(rawMask, width, height, morphologyConfig);
       cleanedMask = morphRes.cleanedMask;
       boxes = morphRes.boxes;
+      rawComponentCount = morphRes.rawComponentCount;
     } else {
       const morphRes = applyMorphologyPipeline(rawMask, width, height, {
         enableGaussianBlur: false,
@@ -275,6 +280,7 @@ export function runBackgroundPipeline(
       });
       cleanedMask = morphRes.cleanedMask;
       boxes = morphRes.boxes;
+      rawComponentCount = morphRes.rawComponentCount;
     }
 
     const morphTime = performance.now() - tMorph0;
@@ -284,17 +290,23 @@ export function runBackgroundPipeline(
     cleanedMasks.push(cleanedMask);
     boundingBoxesPerFrame.push(boxes);
 
-    const views = synthesizeForegroundViewsForFrame(
-      rgbaBuffers[i],
-      cleanedMask,
-      boxes,
-      width,
-      height,
-      displayConfig
-    );
-    overlayFrames.push(views.overlayRgba);
-    foregroundOnlyFrames.push(views.foregroundOnlyRgba);
-    backgroundOnlyFrames.push(views.backgroundOnlyRgba);
+    if (!lightweightMode || i === midIdx) {
+      const views = synthesizeForegroundViewsForFrame(
+        rgbaBuffers[i],
+        cleanedMask,
+        boxes,
+        width,
+        height,
+        displayConfig
+      );
+      overlayFrames.push(views.overlayRgba);
+      if (!lightweightMode) {
+        foregroundOnlyFrames.push(views.foregroundOnlyRgba);
+        backgroundOnlyFrames.push(views.backgroundOnlyRgba);
+      }
+    } else {
+      overlayFrames.push(emptyRgba);
+    }
 
     const gt = groundTruthMasks?.get(frames[i].index);
     const gtMask =
@@ -314,7 +326,8 @@ export function runBackgroundPipeline(
       flicker,
       frameTime,
       boxes.length,
-      gtValidMask
+      gtValidMask,
+      rawComponentCount
     );
     frameMetrics.push(m);
   }

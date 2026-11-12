@@ -36,39 +36,40 @@ export const TrajectoryCharts: React.FC<TrajectoryChartsProps> = ({
     };
   });
 
+  const tooltipStyle = {
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    color: '#0F172A',
+    fontSize: '11px',
+    boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       {/* 1. Translation X */}
-      <div className="bg-[#111827] border border-slate-800 p-4">
-        <div className="text-xs font-semibold text-slate-200 mb-1">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs">
+        <div className="text-xs font-bold text-slate-900 mb-1">
           Camera Trajectory — Translation X (px)
         </div>
-        <div className="text-[11px] text-slate-400 mb-3">
-          Cumulative horizontal camera displacement before and after Gaussian smoothing
+        <div className="text-[11px] text-slate-500 mb-3">
+          Độ dịch chuyển ngang tích lũy trước và sau làm mượt Gaussian
         </div>
         <div className="h-52 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis
                 dataKey="frame"
                 stroke="#64748B"
                 tick={{ fontSize: 10 }}
               />
               <YAxis stroke="#64748B" tick={{ fontSize: 10 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0B0E17',
-                  borderColor: '#334155',
-                  fontSize: '11px',
-                  fontFamily: 'JetBrains Mono, monospace',
-                }}
-              />
+              <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
               <Line
                 type="monotone"
                 dataKey="rawX"
-                name="Raw Trajectory X"
+                name="Quỹ đạo gốc X"
                 stroke="#F59E0B"
                 strokeWidth={1.5}
                 dot={false}
@@ -76,8 +77,8 @@ export const TrajectoryCharts: React.FC<TrajectoryChartsProps> = ({
               <Line
                 type="monotone"
                 dataKey="lkSmoothX"
-                name="LK+RANSAC Smooth X"
-                stroke="#06B6D4"
+                name="Làm mượt LK X"
+                stroke="#0284C7"
                 strokeWidth={2}
                 dot={false}
               />
@@ -98,36 +99,29 @@ export const TrajectoryCharts: React.FC<TrajectoryChartsProps> = ({
       </div>
 
       {/* 2. Translation Y */}
-      <div className="bg-[#111827] border border-slate-800 p-4">
-        <div className="text-xs font-semibold text-slate-200 mb-1">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs">
+        <div className="text-xs font-bold text-slate-900 mb-1">
           Camera Trajectory — Translation Y (px)
         </div>
-        <div className="text-[11px] text-slate-400 mb-3">
-          Cumulative vertical camera displacement before and after Gaussian smoothing
+        <div className="text-[11px] text-slate-500 mb-3">
+          Độ dịch chuyển dọc tích lũy trước và sau làm mượt Gaussian
         </div>
         <div className="h-52 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis
                 dataKey="frame"
                 stroke="#64748B"
                 tick={{ fontSize: 10 }}
               />
               <YAxis stroke="#64748B" tick={{ fontSize: 10 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0B0E17',
-                  borderColor: '#334155',
-                  fontSize: '11px',
-                  fontFamily: 'JetBrains Mono, monospace',
-                }}
-              />
+              <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
               <Line
                 type="monotone"
                 dataKey="rawY"
-                name="Raw Trajectory Y"
+                name="Quỹ đạo gốc Y"
                 stroke="#F59E0B"
                 strokeWidth={1.5}
                 dot={false}
@@ -135,8 +129,8 @@ export const TrajectoryCharts: React.FC<TrajectoryChartsProps> = ({
               <Line
                 type="monotone"
                 dataKey="lkSmoothY"
-                name="LK+RANSAC Smooth Y"
-                stroke="#06B6D4"
+                name="Làm mượt LK Y"
+                stroke="#0284C7"
                 strokeWidth={2}
                 dot={false}
               />
@@ -157,36 +151,29 @@ export const TrajectoryCharts: React.FC<TrajectoryChartsProps> = ({
       </div>
 
       {/* 3. Rotation Angle */}
-      <div className="bg-[#111827] border border-slate-800 p-4">
-        <div className="text-xs font-semibold text-slate-200 mb-1">
-          Camera Trajectory — Roll Rotation θ (deg)
+      <div className="bg-white border border-slate-200 p-4 shadow-xs">
+        <div className="text-xs font-bold text-slate-900 mb-1">
+          Camera Trajectory — Góc Xoay θ (độ)
         </div>
-        <div className="text-[11px] text-slate-400 mb-3">
-          Cumulative in-plane angular trajectory and rotational stabilization curve
+        <div className="text-[11px] text-slate-500 mb-3">
+          Góc xoay camera tích lũy và đường làm mượt xoay
         </div>
         <div className="h-52 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1E293B" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis
                 dataKey="frame"
                 stroke="#64748B"
                 tick={{ fontSize: 10 }}
               />
               <YAxis stroke="#64748B" tick={{ fontSize: 10 }} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#0B0E17',
-                  borderColor: '#334155',
-                  fontSize: '11px',
-                  fontFamily: 'JetBrains Mono, monospace',
-                }}
-              />
+              <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: '11px' }} />
               <Line
                 type="monotone"
                 dataKey="rawAngle"
-                name="Raw Angle (deg)"
+                name="Góc gốc (độ)"
                 stroke="#F59E0B"
                 strokeWidth={1.5}
                 dot={false}
@@ -194,8 +181,8 @@ export const TrajectoryCharts: React.FC<TrajectoryChartsProps> = ({
               <Line
                 type="monotone"
                 dataKey="lkSmoothAngle"
-                name="LK+RANSAC Smooth θ"
-                stroke="#06B6D4"
+                name="Làm mượt LK θ"
+                stroke="#0284C7"
                 strokeWidth={2}
                 dot={false}
               />

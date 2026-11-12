@@ -141,15 +141,15 @@ export const StabilizationLab: React.FC<StabilizationLabProps> = ({
   return (
     <div className="space-y-5">
       {/* Top Clear Result Header & Action Buttons */}
-      <div className="bg-[#111827] border border-slate-800 p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] font-mono uppercase tracking-wider text-cyan-400">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-blue-700 font-bold">
             KẾT QUẢ 1 · MODULE A: VIDEO STABILIZATION LAB
           </div>
-          <h1 className="text-base font-bold text-slate-100 mt-0.5">
+          <h1 className="text-base font-bold text-slate-900 mt-0.5">
             Kết Quả Chống Rung Video ({session.metadata.fileName})
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5">
             Ba màn hình bên dưới đang phát song song: (1) Video gốc bị rung, (2) Video đã chống rung bằng LK + RANSAC, và (3) Video đã chống rung bằng ECC.
           </p>
         </div>
@@ -206,9 +206,9 @@ export const StabilizationLab: React.FC<StabilizationLabProps> = ({
       )}
 
       {/* Main Full-Width Video Comparison Stage (Front and Center!) */}
-      <div className="bg-[#111827] border border-slate-800 p-4 space-y-4">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs space-y-4">
         {/* Prominent Playback Controls Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0B0E17] border border-slate-800 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 border border-slate-200 p-3">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -332,12 +332,12 @@ export const StabilizationLab: React.FC<StabilizationLabProps> = ({
 
         {/* Collapsible Advanced Parameters Drawer */}
         {showAdvancedParams && (
-          <div className="bg-[#0B0E17] border border-slate-800 p-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-              <div className="text-xs font-semibold text-cyan-400">
+          <div className="bg-slate-50 border border-slate-200 p-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+              <div className="text-xs font-bold text-blue-700">
                 Bảng Điều Chỉnh Tham Số Thuật Toán Chống Rung (Nhấn "Chạy Lại Chống Rung" sau khi chỉnh)
               </div>
-              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
+              <div className="flex flex-wrap items-center gap-4 text-xs text-slate-700">
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -555,7 +555,7 @@ export const StabilizationLab: React.FC<StabilizationLabProps> = ({
                         eccEps: Number(e.target.value),
                       })
                     }
-                    className="bg-[#111827] border border-slate-700 px-2 py-1 text-xs font-mono text-slate-200"
+                    className="bg-white border border-slate-300 px-2 py-1 text-xs font-mono text-slate-800"
                   >
                     <option value={0.01}>1e-2 (Nhanh)</option>
                     <option value={0.001}>1e-3 (Chuẩn)</option>

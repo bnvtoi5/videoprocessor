@@ -1,120 +1,73 @@
-# SPATIOTEMPORAL VIDEO PROCESSING LAB
+# Phần Mềm Xử Lý Video Chống Rung & Tách Nền (DSP501 — FPT University)
 
-**Topic:** *"Hệ thống xử lý video không gian–thời gian: Chống rung, tách lọc nền và vật thể, đánh giá sai biệt thuật toán."*  
-*(Spatiotemporal Video Processing System: Video Stabilization, Background/Foreground Separation, and Algorithmic Discrepancy Evaluation)*
-
----
-
-## 1. Project Overview
-
-**SpatioTemporal Video Processing Lab** is a browser-native computer vision research and experimental workbench designed for academic experimentation, algorithm comparison, and technical demonstration. Every video frame is decoded, processed, and quantitatively evaluated directly in the browser using **OpenCV.js WebAssembly (`@techstark/opencv-js` 5.0.0-release.1)** and verified **TypeScript** numerical algorithms.
-
-### Core Capabilities
-- **Video Input & Resource Guardrails:** Upload MP4, MOV, or WebM videos with sequential frame decoding, configurable frame count limits, resolution scaling, sampling FPS, progress bar, and cancellation.
-- **Module A — Video Stabilization Lab:** Compares Unstabilized Baseline (`A0`), Sparse Pyramidal Lucas-Kanade Optical Flow + 2D Similarity RANSAC (`A1`), and Enhanced Correlation Coefficient Euclidean Stabilization (`A2`).
-- **Module B — Background & Foreground Separation Lab:** Compares Absolute Frame Differencing (`B1`), Adaptive Gaussian Mixture Model MOG2 (`B2`), and Project Sample-based KNN (`B3`) across 5 simultaneous views (`Original`, `Binary Mask`, `Overlay`, `Foreground Only`, `Background Only`) with configurable morphological filtering.
-- **Module C — Combined Spatiotemporal Pipeline:** Executes dual-flow experiments comparing `Flow A (Original → Background Subtraction)` vs `Flow B (Stabilization → Background Subtraction)` to quantify how camera shake degrades background models and how stabilization restores segmentation accuracy.
-- **Module D — Evaluation & Benchmark Lab:** Multi-trial median timing protocol, Ground Truth PNG ZIP import, 7 scientific Recharts visualizations, sortable comparison matrix, and exportable CSV, JSON, and HTML academic reports.
-- **Synthetic Demo Generator:** Deterministic test sequences (`Scenario 1: Shaky Camera`, `Scenario 2: Moving Foreground Object`, `Scenario 3: Illumination Change`) with exact pixel-level Ground Truth masks and camera trajectories.
+Ứng dụng xử lý tín hiệu số không gian–thời gian (**Spatiotemporal Video Processing Lab**) chạy độc lập 100% trên trình duyệt bằng **React 19 + TypeScript + OpenCV.js WebAssembly**.
 
 ---
 
-## 2. System Architecture
+## 1. Hướng Dẫn Clone Từ GitHub & Cài Đặt Trên Máy Tính Cá Nhân (Windows / macOS / Linux)
 
-```
-src/
-  algorithms/
-    stabilization/
-      opticalFlow.ts          # Grayscale conversion, Shi-Tomasi corners & Pyramidal Lucas-Kanade (OpenCV WASM + TS)
-      ransac.ts               # 2D Similarity Transform (dx, dy, dθ, s) RANSAC + Procrustes LS refinement
-      ecc.ts                  # Enhanced Correlation Coefficient Euclidean solver with non-convergence fallback
-      trajectory.ts           # Cumulative camera trajectory & 1D Gaussian smoothing filter
-      stabilizationPipeline.ts# Affine frame warping, border loss calculation & pipeline orchestration
-    background/
-      frameDifference.ts      # First-frame, temporal median, and running-average Frame Differencing
-      mog2.ts                 # OpenCV BackgroundSubtractorMOG2 + 3-state shadow (127) vs foreground (255)
-      sampleKnn.ts            # Project TypeScript Sample-based KNN pixel history background model
-      morphology.ts           # Gaussian blur, threshold, opening, closing, erosion, dilation & connected components
-      foregroundExtraction.ts # 5-mode foreground synthesizer & per-frame evaluation
-  core/
-    openCvLoader.ts           # Asynchronous OpenCV.js WASM initializer & runtime API capability inspector
-    videoDecoder.ts           # HTML5 Video metadata prober & sequential frame extractor with AbortSignal
-    videoEncoder.ts           # MediaRecorder video exporter (MP4 priority, WebM fallback)
-    workerBridge.ts           # Web Worker task dispatcher with transparent main-thread fallback
-    pipelineManager.ts        # 8-stage Combined Spatiotemporal Pipeline manager (Flow A vs Flow B)
-  workers/
-    videoProcessing.worker.ts # Background Web Worker for non-blocking frame processing
-  evaluation/
-    stabilizationMetrics.ts   # Second-order finite difference Jitter RMS & acceleration metrics
-    segmentationMetrics.ts    # Pixel-level TP, FP, FN, TN, IoU, Precision, Recall, F1 & Temporal Flicker
-    performanceMetrics.ts     # Statistical median runtime & throughput breakdown
-    benchmarkRunner.ts        # Standardized multi-algorithm benchmark protocol runner
-    reportGenerator.ts        # CSV, JSON, and HTML Experiment Summary generators
-  demo/
-    groundTruthGenerator.ts   # Exact synthetic binary mask generator & Ground Truth PNG .zip loader
-    syntheticSceneGenerator.ts# 3 deterministic scenarios (Shaky Camera, Moving Object, Illumination Change)
-  components/
-    layout/                   # Sidebar, Header
-    video/                    # FrameCanvas, VideoInputPanel
-    charts/                   # TrajectoryCharts, BenchmarkCharts
-    common/                   # MetricCard
-  pages/
-    Dashboard.tsx
-    StabilizationLab.tsx
-    BackgroundLab.tsx
-    BenchmarkLab.tsx
-    CombinedPipeline.tsx
-    AlgorithmGuide.tsx
-tests/
-  algorithms.test.ts          # Deterministic unit tests for all mathematical & CV modules
-docs/
-  ALGORITHMS.md
-  METRICS.md
-  TEST_PROTOCOL.md
-  DEMO_SCRIPT.md
-  REPORT_TEMPLATE.md
-```
+Phần mềm chạy thuần phía máy khách (Client-side WebAssembly), **không cần** cài Python, **không cần** cài OpenCV C++ hệ thống hay cơ sở dữ liệu.
 
----
+### Bước 1: Cài đặt Node.js
+- Tải và cài đặt **Node.js (bản LTS 18.x, 20.x hoặc 22.x)** tại: [https://nodejs.org](https://nodejs.org)
 
-## 3. Dependencies
-
-- **Runtime:** `react`, `react-dom`, `@techstark/opencv-js` (`5.0.0-release.1`), `recharts`, `lucide-react`, `jszip`
-- **Build & Dev:** `typescript`, `vite`, `@tailwindcss/vite`, `tailwindcss`, `tsx`
-
----
-
-## 4. Installation, Running & Building
+### Bước 2: Tải code (Clone từ GitHub hoặc giải nén ZIP) và cài đặt thư viện
+Mở **Terminal** (hoặc **Command Prompt / PowerShell** trên Windows) tại thư mục dự án và chạy:
 
 ```bash
-# 1. Install dependencies
+git clone <link-github-repo-cua-ban>
+cd <ten-thu-muc-repo>
 npm install
+```
 
-# 2. Start development server on port 3000
+### Bước 3: Chạy phần mềm trên máy tính
+```bash
 npm run dev
+```
+Sau đó mở trình duyệt (Chrome, Edge, Brave hoặc Firefox) tại địa chỉ:
+👉 **`http://localhost:3000`**
 
-# 3. Run unit tests
-npx --yes tsx --test tests/algorithms.test.ts
-
-# 4. Type-check and build production bundle
+### Bước 4: Đóng gói bản Production hoặc Chạy Unit Test (Tùy chọn)
+```bash
+# Kiểm tra biên dịch TypeScript & đóng gói ứng dụng
 npm run lint
 npm run build
+
+# Chạy bộ kiểm thử tự động các thuật toán DSP
+npm test
 ```
 
 ---
 
-## 5. How to Use
+## 2. Hướng Dẫn Đẩy Code Lên GitHub (Push to GitHub)
 
-1. **Dashboard:** Inspect OpenCV.js WASM capability status. Either upload a local video (`MP4`, `MOV`, `WebM`) or select one of the three **Synthetic Demo Scenarios**.
-2. **Stabilization Lab:** Click **Run Stabilization Experiment** to compare Original, Sparse Optical Flow (`LK + RANSAC`), and `ECC`. Toggle feature points, motion vectors, and RANSAC outliers on the canvas, inspect X/Y/θ trajectories, and export stabilized video.
-3. **Background Lab:** Select `Frame Differencing`, `MOG2`, or `Sample-based KNN` (or click **Compare All 3 Algorithms**). Inspect the 5 simultaneous views and tune morphological post-processing.
-4. **Combined Pipeline:** Execute the 8-stage pipeline to compare `Flow A (Original → BG)` against `Flow B (Stabilized → BG)` on shaky videos.
-5. **Benchmark Lab:** Run the standardized benchmark suite (1 or 3 trials), sort the comparison table, analyze the 7 Recharts graphs, and export CSV, JSON, or HTML reports.
+Nếu bạn tải mã nguồn từ hệ thống về máy tính và muốn đẩy lên GitHub cá nhân:
+
+```bash
+git init
+git add .
+git commit -m "Initial commit: DSP501 Spatiotemporal Video Processing Lab"
+git branch -M main
+git remote add origin https://github.com/<username>/<ten-repo>.git
+git push -u origin main
+```
 
 ---
 
-## 6. Troubleshooting
+## 3. Sơ Đồ Thư Mục Code & Vị Trí Từng Bộ Lọc DSP (`src/`)
 
-- **Unsupported Video Codec:** Browsers decode H.264/AVC `.mp4` and VP8/VP9 `.webm` natively. HEVC/H.265 `.mov` files may not decode on browsers without hardware HEVC licenses; transcode to H.264 MP4 if an error banner appears.
-- **High Memory Usage on Long 4K Videos:** Keep `Max Processing Width` at `480px` or `640px` and `Frame Count Limit` between `48` and `150` frames for responsive in-browser experimentation.
-- **Ground Truth N/A:** Uploaded real-world videos do not have ground truth masks unless you upload a matching `.zip` of binary PNG masks (`0000.png`, `0001.png`, ...) with identical resolution.
+| Nhóm Chức Năng | Bộ Lọc / Thuật Toán Cụ Thể | Đường Dẫn File Code | Hàm Thực Thi Chính |
+| :--- | :--- | :--- | :--- |
+| **1. Chống rung (Stabilization)** | Chuyển ảnh xám ITU-R BT.601, Mặt nạ vùng biên trong (`Inner ROI Margin Mask`), Phát hiện góc **Shi–Tomasi** & Optical Flow **Pyramidal Lucas–Kanade (PyrLK)** | `src/algorithms/stabilization/opticalFlow.ts` | `rgbaToGrayscale()`, `detectAndTrackOpticalFlow()` |
+| **1. Chống rung (Stabilization)** | Bộ lọc loại bỏ ngoại lai **2D Similarity RANSAC (4-DOF)** | `src/algorithms/stabilization/ransac.ts` | `estimateSimilarityTransformRansac()` |
+| **1. Chống rung (Stabilization)** | Bộ lọc làm mượt quỹ đạo **Gaussian Kernel (D0)** & **Trung bình trượt Boxcar (D3)** | `src/algorithms/stabilization/trajectory.ts` | `gaussianSmooth1D()`, `movingAverageSmooth1D()`, `computeSmoothedTrajectory()` |
+| **1. Chống rung (Stabilization)** | Căn chỉnh toàn ảnh trực tiếp **ECC (Enhanced Correlation Coefficient)** | `src/algorithms/stabilization/ecc.ts` | `estimateEccTransform()` |
+| **1. Chống rung (Stabilization)** | Biến đổi hình học ngược **Affine 2×3 (Corrective Warping)** & Cắt biên | `src/algorithms/stabilization/stabilizationPipeline.ts` | `warpFrameAffineRgba()`, `runStabilizationPipeline()` |
+| **2. Tách nền (Background)** | Sai khác khung hình **Frame Differencing (B1)** (First-Frame / Median / Running Avg) | `src/algorithms/background/frameDifference.ts` | `runFrameDifferencingSequence()` |
+| **2. Tách nền (Background)** | Mô hình hỗn hợp Gaussian thích nghi **MOG2 (B2)** + Khử bóng đổ (Shadow Suppression) | `src/algorithms/background/mog2.ts` | `runMog2Sequence()` |
+| **2. Tách nền (Background)** | Mô hình phi tham số lân cận mẫu **Sample-based KNN (B3)** | `src/algorithms/background/sampleKnn.ts` | `runSampleKnnSequence()` |
+| **3. Bộ lọc hậu xử lý (Morphology)** | Lọc làm mịn không gian **Gaussian 3×3**, **Morphological Opening / Closing**, Gán nhãn thành phần liên thông 8 hướng | `src/algorithms/background/morphology.ts` | `gaussianBlur3x3()`, `morphologicalOpen()`, `morphologicalClose()`, `applyMorphologyPipeline()` |
+| **4. Chỉ số đánh giá (Metrics)** | Đo độ rung đầu ra thực tế **Post-Warp Remeasured Output Jitter RMS** & **Trajectory Smoothness** | `src/evaluation/stabilizationMetrics.ts` | `computeRemeasuredOutputJitterRms()`, `computeTrajectoryJitterMetrics()` |
+| **4. Chỉ số đánh giá (Metrics)** | Ma trận nhầm lẫn (**Precision, Recall, F1, IoU**), **Mask Flicker**, và **Sai khác Pixel Mask $\|M_{\text{variant}} - M_{D0}\|$** | `src/evaluation/segmentationMetrics.ts` | `computeFrameSegmentationMetrics()`, `computeMaskDifferenceVsBaseline()` |
+| **5. Nghiệm thu & Ablation** | Chạy đồng thời các cấu hình **Ablation D0–D6** có chia sẻ cache chống rung và nhường luồng sự kiện (`yieldToMain`) | `src/evaluation/researchExperiments.ts` | `runCustomAblationComboBatch()` |
+| **6. Giao diện Nghiệm thu Đa Video** | Nạp nhiều video + **Bảng Nghiệm Thu Số Liệu** + **Phiếu Bầu Chọn Đa Số** + **Thẻ Demo Trực Quan** | `src/components/research/MultiVideoAcceptanceStudio.tsx` | `<MultiVideoAcceptanceStudio />` |

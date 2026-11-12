@@ -125,18 +125,18 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
   return (
     <div className="space-y-5">
       {/* Top Clear Header */}
-      <div className="bg-[#111827] border border-slate-800 p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] font-mono uppercase tracking-wider text-amber-400">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-amber-700 font-bold">
             KẾT QUẢ 3 · MODULE C: COMBINED SPATIOTEMPORAL PIPELINE
           </div>
-          <h1 className="text-base font-bold text-slate-100 flex items-center gap-2 mt-0.5">
-            <GitMerge className="w-4 h-4 text-cyan-400" />
+          <h1 className="text-base font-bold text-slate-900 flex items-center gap-2 mt-0.5">
+            <GitMerge className="w-4 h-4 text-blue-600" />
             <span>
               Kết Hợp Chống Rung Trước Khi Tách Nền ({session.metadata.fileName})
             </span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5">
             So sánh trực tiếp: (Bên trái) Tách nền ngay trên video gốc bị rung vs (Bên phải) Chống rung camera trước rồi mới tách nền để giảm nhiễu giả.
           </p>
         </div>
@@ -146,7 +146,7 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
             type="button"
             disabled={isRunning}
             onClick={handleRunCombinedExperiment}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 cursor-pointer whitespace-nowrap shrink-0 shadow-xs"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
             <span>
@@ -158,7 +158,7 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
             type="button"
             disabled={!comparisonResult || exportingFlow !== null}
             onClick={() => handleExportCombinedOutput('flowB')}
-            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0"
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer whitespace-nowrap shrink-0 shadow-xs"
           >
             <Download className="w-3.5 h-3.5" />
             <span>
@@ -171,10 +171,10 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
       </div>
 
       {/* Controls & Playback Bar */}
-      <div className="bg-[#111827] border border-slate-800 p-3 flex flex-wrap items-center justify-between gap-4 text-xs">
+      <div className="bg-white border border-slate-200 p-3 shadow-xs flex flex-wrap items-center justify-between gap-4 text-xs">
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">Bước 1 (Chống rung):</span>
+            <span className="text-slate-600 font-medium">Bước 1 (Chống rung):</span>
             <select
               value={config.stabilizationMethod}
               onChange={(e) =>
@@ -183,7 +183,7 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
                   stabilizationMethod: e.target.value as StabilizationMethodId,
                 })
               }
-              className="bg-[#0B0E17] border border-slate-700 px-2.5 py-1.5 font-mono text-slate-200"
+              className="bg-white border border-slate-300 px-2.5 py-1.5 font-mono text-slate-800"
             >
               <option value="lk_ransac">A1. LK + RANSAC</option>
               <option value="ecc">A2. ECC Stabilization</option>
@@ -191,7 +191,7 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
           </div>
 
           <div className="flex items-center gap-1.5">
-            <span className="text-slate-400">Bước 2 (Tách nền):</span>
+            <span className="text-slate-600 font-medium">Bước 2 (Tách nền):</span>
             <select
               value={config.backgroundMethod}
               onChange={(e) =>
@@ -200,7 +200,7 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
                   backgroundMethod: e.target.value as BackgroundMethodId,
                 })
               }
-              className="bg-[#0B0E17] border border-slate-700 px-2.5 py-1.5 font-mono text-slate-200"
+              className="bg-white border border-slate-300 px-2.5 py-1.5 font-mono text-slate-800"
             >
               <option value="frame_diff">B1. Frame Differencing</option>
               <option value="mog2">B2. MOG2 (Khuyên dùng)</option>
@@ -258,17 +258,17 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
       {/* Dual-Flow Visual Comparison: Flow A vs Flow B */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* Flow A: Original -> Background Subtraction */}
-        <div className="bg-[#111827] border border-slate-800 p-4 space-y-3">
-          <div className="border-b border-slate-800 pb-2 flex items-center justify-between">
+        <div className="bg-white border border-slate-200 p-4 shadow-xs space-y-3">
+          <div className="border-b border-slate-200 pb-2 flex items-center justify-between">
             <div>
-              <h2 className="text-xs font-bold text-amber-400">
+              <h2 className="text-xs font-bold text-amber-700">
                 LUỒNG A: Tách Nền Trực Tiếp Trên Video Rung (Chưa Chống Rung)
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Rung lắc camera làm viền cảnh nền bị nhận nhầm thành vật thể chuyển động
               </p>
             </div>
-            <span className="text-xs font-mono text-slate-300 tabular-nums">
+            <span className="text-xs font-mono text-slate-600 tabular-nums">
               IoU:{' '}
               {flowAIoU !== null ? `${(flowAIoU * 100).toFixed(1)}%` : 'N/A'}
             </span>
@@ -300,17 +300,17 @@ export const CombinedPipeline: React.FC<CombinedPipelineProps> = ({
         </div>
 
         {/* Flow B: Stabilization -> Background Subtraction */}
-        <div className="bg-[#111827] border border-emerald-500/40 p-4 space-y-3">
-          <div className="border-b border-slate-800 pb-2 flex items-center justify-between">
+        <div className="bg-white border-2 border-emerald-500 p-4 shadow-xs space-y-3">
+          <div className="border-b border-slate-200 pb-2 flex items-center justify-between">
             <div>
-              <h2 className="text-xs font-bold text-emerald-400">
+              <h2 className="text-xs font-bold text-emerald-700">
                 LUỒNG B: Đã Chống Rung ({config.stabilizationMethod.toUpperCase()}) → Sau Đó Mới Tách Nền
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-500">
                 Nền được cố định trước giúp mặt nạ vật thể sạch và chính xác hơn rõ rệt
               </p>
             </div>
-            <span className="text-xs font-mono text-emerald-400 tabular-nums">
+            <span className="text-xs font-mono text-emerald-700 font-bold tabular-nums">
               IoU:{' '}
               {flowBIoU !== null ? `${(flowBIoU * 100).toFixed(1)}%` : 'N/A'}
             </span>

@@ -188,13 +188,19 @@ export interface ResearchExperimentRow {
   residualMotionPx: number | null;
   // Proxy & Trajectory Metrics
   jitterRmsPx: number | null;
+  remeasuredJitterRmsPx?: number | null;
+  rawInputJitterRmsPx?: number | null;
   rotationJitterRmsDeg: number | null;
   accelerationRms: number | null;
   inlierRatioPercent: number | null;
   eccConvergencePercent: number | null;
+  fgRatioPercent?: number | null;
+  meanRawComponentsPerFrame?: number | null;
+  meanComponentsPerFrame?: number | null;
   maskFlickerPercent: number | null;
   validAreaPercent: number | null;
   borderLossPercent: number | null;
+  diffPixelsVsBaselinePercent?: number | null;
   // Performance & Runtime Metrics
   fps: number;
   meanLatencyMs: number;
@@ -203,6 +209,77 @@ export interface ResearchExperimentRow {
   totalPipelineTimeMs: number;
   repetitions: number;
   status: 'Measured (Empirical)' | 'Baseline' | 'Ablation Variant' | 'Theoretical Reference';
+}
+
+export interface PerFrameExportRecord {
+  experimentId: string;
+  group: string;
+  variantCode: string;
+  algorithmLabel: string;
+  datasetName: string;
+  frameIndex: number;
+  dxPx?: number | null;
+  dyPx?: number | null;
+  daDeg?: number | null;
+  corrDxPx?: number | null;
+  corrDyPx?: number | null;
+  inliersCount?: number | null;
+  totalFeatures?: number | null;
+  inlierRatioPercent?: number | null;
+  eccConverged?: boolean | null;
+  validAreaPercent?: number | null;
+  borderLossPercent?: number | null;
+  fgRatioPercent?: number | null;
+  flickerPercent?: number | null;
+  rawComponentCount?: number | null;
+  cleanedComponentCount?: number | null;
+  tp?: number | null;
+  fp?: number | null;
+  fn?: number | null;
+  tn?: number | null;
+  iouPercent?: number | null;
+  f1Percent?: number | null;
+  precisionPercent?: number | null;
+  recallPercent?: number | null;
+  diffVsBaselinePercent?: number | null;
+  processingTimeMs: number;
+}
+
+export interface AblationComboSlotConfig {
+  slotId: string;
+  code: string;
+  label: string;
+  category: 'ablation_d' | 'order_c' | 'combo_ab' | 'custom';
+  enabled: boolean;
+  isBaseline?: boolean;
+  bypassNote: string;
+  processingOrder: 'stabilize_then_bg' | 'original_to_bg' | 'bg_then_warp_mask';
+  stabilizationMethod: StabilizationMethodId;
+  ransacThreshold: number;
+  smoothingRadius: number;
+  trajectoryMode: 'gaussian_smooth' | 'moving_average' | 'rigid_lock' | 'zero_correction';
+  enableMotionCompensation: boolean;
+  backgroundMethod: BackgroundMethodId;
+  detectShadows: boolean;
+  enableGaussianBlur: boolean;
+  enableMorphology: boolean;
+  minComponentArea: number;
+}
+
+export interface AblationComboVisualResult {
+  slotConfig: AblationComboSlotConfig;
+  row: ResearchExperimentRow;
+  stabilizedFrames: Uint8ClampedArray[];
+  rawMasks: Uint8Array[];
+  cleanedMasks: Uint8Array[];
+  overlayFrames: Uint8ClampedArray[];
+  diffMasksVsBaselineRgba?: Uint8ClampedArray[];
+  perFrameDiffPercentVsBaseline?: number[];
+  perFrameIoU: (number | null)[];
+  perFrameFgRatio: number[];
+  perFrameFlicker: number[];
+  perFrameRawComponents?: number[];
+  perFrameComponents: number[];
 }
 
 export type SensitivityParameterKey =
@@ -222,8 +299,11 @@ export interface ParameterSensitivityPoint {
   iou: number | null;
   f1: number | null;
   jitterRmsPx: number | null;
+  remeasuredJitterRmsPx?: number | null;
   translationRmsePx: number | null;
+  fgRatioPercent?: number | null;
   maskFlickerPercent: number | null;
+  meanComponentsPerFrame?: number | null;
   fps: number;
   latencyMs: number;
 }
@@ -236,6 +316,20 @@ export interface ParameterSensitivitySweepResult {
   datasetName: string;
   points: ParameterSensitivityPoint[];
   optimalValueNoteVi: string;
+}
+
+export interface RepresentativeVisualFrame {
+  variantCode: string;
+  variantLabel: string;
+  frameIndex: number;
+  width: number;
+  height: number;
+  originalPngDataUrl?: string;
+  stabilizedPngDataUrl?: string;
+  rawMaskPngDataUrl?: string;
+  cleanedMaskPngDataUrl?: string;
+  overlayPngDataUrl?: string;
+  diffMaskVsBaselinePngDataUrl?: string;
 }
 
 export interface TraceableExperimentLogEntry {
@@ -258,6 +352,8 @@ export interface TraceableExperimentLogEntry {
   controlledVariables: string[];
   expectedObservation: string;
   measuredRows: ResearchExperimentRow[];
+  perFrameRecords?: PerFrameExportRecord[];
+  representativeFrames?: RepresentativeVisualFrame[];
   pairedStats?: PairedStatisticalTestResult[];
   hypothesisVerdict:
     | 'Supported by Empirical Data'
@@ -276,3 +372,4 @@ export interface TraceableExperimentLogEntry {
     morphologyConfig: MorphologyConfig;
   };
 }
+

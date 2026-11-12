@@ -9,6 +9,7 @@ import {
 import {
   computeSmoothedTrajectory,
   gaussianSmooth1D,
+  movingAverageSmooth1D,
 } from '../src/algorithms/stabilization/trajectory';
 import {
   rgbaToGrayscale,
@@ -28,12 +29,19 @@ import {
 } from '../src/algorithms/background/morphology';
 import {
   computeFrameSegmentationMetrics,
+  computeMaskDifferenceVsBaseline,
   evaluateBinaryMaskAgainstGroundTruth,
 } from '../src/evaluation/segmentationMetrics';
 import {
   computeCameraTransformGroundTruthError,
+  computeRemeasuredOutputJitterRms,
   computeTrajectoryJitterMetrics,
 } from '../src/evaluation/stabilizationMetrics';
+import {
+  DEFAULT_ABLATION_COMBO_SLOTS,
+  runCustomAblationComboBatch,
+} from '../src/evaluation/researchExperiments';
+import { generateResultsWorkbookXlsxBlob } from '../src/evaluation/reporting/exportEngine';
 import { computeMedian } from '../src/evaluation/performanceMetrics';
 import {
   computePairedFrameStatistics,
@@ -56,6 +64,7 @@ import {
 } from '../src/research/literatureDatabase';
 import { generateAcademicMarkdownReport } from '../src/research/academicReportBuilder';
 import {
+  DEFAULT_FOREGROUND_DISPLAY_CONFIG,
   DEFAULT_FRAME_DIFF_PARAMS,
   DEFAULT_MOG2_PARAMS,
   DEFAULT_MORPHOLOGY_CONFIG,
@@ -422,4 +431,120 @@ test('12. Scientific Literature Database and 18-Section Academic Report Builder 
   assert.ok(md.includes('Zivkovic, Z. (2004)'));
   assert.ok(md.includes('Wang, Y., Jodoin, P.-M.'));
 });
+
+test('13. Ablation Combo Batch Runner, Re-measured Output Jitter, and Trajectory Modes (D3 vs D3b)', async () => {
+  const session = generateSyntheticSession('shaky_camera', 8, 160);
+  const rawRgba = session.frames.map((f) => f.rgba);
+
+  const rawRemeasured = computeRemeasuredOutputJitterRms(
+    null,
+    rawRgba,
+    session.metadata.width,
+    session.metadata.height,
+    DEFAULT_STABILIZATION_PARAMS
+  );
+  assert.ok(rawRemeasured > 0, 'Unstabilized shaky sequence must have positive re-measured jitter');
+
+  // Execute batch on first 3 slots (D0, D1, D2)
+  const testSlots = DEFAULT_ABLATION_COMBO_SLOTS.slice(0, 3).map((s) => ({
+    ...s,
+    enabled: true,
+  }));
+  const batchOut = await runCustomAblationComboBatch(
+    session,
+    testSlots,
+    DEFAULT_STABILIZATION_PARAMS,
+    DEFAULT_FRAME_DIFF_PARAMS,
+    DEFAULT_MOG2_PARAMS,
+    DEFAULT_SAMPLE_KNN_PARAMS,
+    DEFAULT_MORPHOLOGY_CONFIG,
+    DEFAULT_FOREGROUND_DISPLAY_CONFIG
+  );
+
+  assert.equal(batchOut.logEntry.measuredRows.length, 3);
+  assert.equal(batchOut.visualResults.length, 3);
+  for (const row of batchOut.logEntry.measuredRows) {
+    assert.ok(row.fgRatioPercent !== null && row.fgRatioPercent !== undefined);
+    assert.ok(row.meanComponentsPerFrame !== null && row.meanComponentsPerFrame !== undefined);
+    assert.ok(row.remeasuredJitterRmsPx !== null && row.remeasuredJitterRmsPx !== undefined);
+  }
+});
+
+test('14. D3 Moving-Average vs D0 Gaussian vs D4 No-Warp, Pre/Post Morphology Component Counts, Difference Masks & 7-Sheet XLSX', async () => {
+  // 1. Verify D3 (Moving-Average Boxcar) produces a distinct smoothed trajectory from D0 (Gaussian) and D4 (zero_correction)
+  const impulseSignal = [0, 0, 0, 12, 0, 0, 0];
+  const gauss = gaussianSmooth1D(impulseSignal, 2);
+  const boxcar = movingAverageSmooth1D(impulseSignal, 2);
+  assert.notEqual(
+    gauss[3].toFixed(4),
+    boxcar[3].toFixed(4),
+    'Gaussian (D0) peak weight must differ from uniform Boxcar (D3) weight'
+  );
+
+  // 2. Verify applyMorphologyPipeline returns rawComponentCount >= boxes.length
+  const w = 32;
+  const h = 32;
+  const mask = new Uint8Array(w * h);
+  mask[2 * w + 2] = 255; // speckle 1
+  mask[4 * w + 28] = 255; // speckle 2
+  for (let y = 12; y <= 18; y++) {
+    for (let x = 12; x <= 18; x++) {
+      mask[y * w + x] = 255; // valid object
+    }
+  }
+  const morphOut = applyMorphologyPipeline(mask, w, h, {
+    ...DEFAULT_MORPHOLOGY_CONFIG,
+    minComponentArea: 15,
+  });
+  assert.equal(morphOut.rawComponentCount, 3, 'Pre-morphology raw components should be 3');
+  assert.equal(morphOut.boxes.length, 1, 'Post-morphology cleaned components should be 1');
+
+  // 3. Verify computeMaskDifferenceVsBaseline(|M_variant - M_D0|) and strict dimension validation
+  const baseMask = new Uint8Array([255, 255, 0, 0]);
+  const varMask = new Uint8Array([255, 0, 255, 0]);
+  const diffRes = computeMaskDifferenceVsBaseline(varMask, baseMask, true, {
+    width: 2,
+    height: 2,
+    frameIndex: 0,
+  });
+  assert.equal(diffRes.diffPixelCount, 2);
+  assert.equal(diffRes.addedFgCount, 1);
+  assert.equal(diffRes.missedFgCount, 1);
+  assert.ok(Math.abs(diffRes.diffPercent - 50) < 1e-6);
+  assert.equal(diffRes.diffRgba.length, 16);
+
+  assert.throws(
+    () => computeMaskDifferenceVsBaseline(new Uint8Array(4), new Uint8Array(6)),
+    /Pixel XOR Dimension Mismatch/,
+    'Must throw explicit error when binary masks have different lengths'
+  );
+  assert.throws(
+    () =>
+      computeMaskDifferenceVsBaseline(new Uint8Array(4), new Uint8Array(4), false, {
+        width: 3,
+        height: 2,
+      }),
+    /Pixel XOR Resolution Mismatch/,
+    'Must throw explicit error when binary mask length does not match W×H'
+  );
+
+  // 4. Verify 7-Sheet OpenXML Workbook (.XLSX) generation
+  const session = generateSyntheticSession('shaky_camera', 6, 160);
+  const d0AndD3Slots = DEFAULT_ABLATION_COMBO_SLOTS.filter(
+    (s) => s.code === 'D0' || s.code === 'D3' || s.code === 'D4'
+  ).map((s) => ({ ...s, enabled: true }));
+  const batch = await runCustomAblationComboBatch(
+    session,
+    d0AndD3Slots,
+    DEFAULT_STABILIZATION_PARAMS,
+    DEFAULT_FRAME_DIFF_PARAMS,
+    DEFAULT_MOG2_PARAMS,
+    DEFAULT_SAMPLE_KNN_PARAMS,
+    DEFAULT_MORPHOLOGY_CONFIG,
+    DEFAULT_FOREGROUND_DISPLAY_CONFIG
+  );
+  const xlsxBlob = await generateResultsWorkbookXlsxBlob(batch.logEntry);
+  assert.ok(xlsxBlob.size > 1000, 'Generated 7-sheet .xlsx workbook must be non-empty');
+});
+
 

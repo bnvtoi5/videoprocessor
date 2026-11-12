@@ -162,7 +162,7 @@ export function filterConnectedComponentsAndExtractBoxes(
   width: number,
   height: number,
   minComponentArea: number
-): { cleanedMask: Uint8Array; boxes: MovingComponentBox[] } {
+): { cleanedMask: Uint8Array; boxes: MovingComponentBox[]; totalRawBlobs: number } {
   const n = width * height;
   const visited = new Uint8Array(n);
   const cleanedMask = new Uint8Array(n);
@@ -170,10 +170,12 @@ export function filterConnectedComponentsAndExtractBoxes(
   const queue = new Int32Array(n);
 
   let componentId = 1;
+  let totalRawBlobs = 0;
   const minArea = Math.max(1, minComponentArea);
 
   for (let i = 0; i < n; i++) {
     if (binaryMask[i] === 0 || visited[i] !== 0) continue;
+    totalRawBlobs++;
 
     let head = 0;
     let tail = 0;
@@ -236,19 +238,77 @@ export function filterConnectedComponentsAndExtractBoxes(
   }
 
   boxes.sort((a, b) => b.area - a.area);
-  return { cleanedMask, boxes };
+  return { cleanedMask, boxes, totalRawBlobs };
 }
 
 /**
- * Applies the complete configurable morphological chain to a raw foreground mask.
+ * Counts 8-connected components on any binary mask (>= 1px area) before morphology filtering.
+ */
+export function countConnectedComponentsRaw(
+  binaryMask: Uint8Array,
+  width: number,
+  height: number
+): number {
+  const n = width * height;
+  const visited = new Uint8Array(n);
+  const queue = new Int32Array(n);
+  let count = 0;
+
+  for (let i = 0; i < n; i++) {
+    if (binaryMask[i] === 0 || visited[i] !== 0) continue;
+    count++;
+    let head = 0;
+    let tail = 0;
+    queue[tail++] = i;
+    visited[i] = 1;
+    while (head < tail) {
+      const curr = queue[head++];
+      const cy = Math.floor(curr / width);
+      const cx = curr - cy * width;
+      for (let dy = -1; dy <= 1; dy++) {
+        const ny = cy + dy;
+        if (ny < 0 || ny >= height) continue;
+        const nRow = ny * width;
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = cx + dx;
+          if (nx < 0 || nx >= width) continue;
+          const nIdx = nRow + nx;
+          if (binaryMask[nIdx] > 0 && visited[nIdx] === 0) {
+            visited[nIdx] = 1;
+            queue[tail++] = nIdx;
+          }
+        }
+      }
+    }
+  }
+  return count;
+}
+
+/**
+ * Applies the complete configurable morphological chain to a raw foreground mask,
+ * recording connected component count both before and after filtering.
  */
 export function applyMorphologyPipeline(
   rawMask: Uint8Array,
   width: number,
   height: number,
   config: MorphologyConfig
-): { cleanedMask: Uint8Array; boxes: MovingComponentBox[] } {
-  let current: Uint8Array = toStrictBinaryMask(rawMask);
+): {
+  cleanedMask: Uint8Array;
+  boxes: MovingComponentBox[];
+  rawComponentCount: number;
+  intermediateSteps?: {
+    strictBinaryMask: Uint8Array;
+    blurredMask: Uint8Array;
+    thresholdedMask: Uint8Array;
+    openedMask: Uint8Array;
+    closedMask: Uint8Array;
+  };
+} {
+  const strictBinary = toStrictBinaryMask(rawMask);
+  const rawComponentCount = countConnectedComponentsRaw(strictBinary, width, height);
+  let current: Uint8Array = strictBinary;
 
   if (config.enableGaussianBlur) {
     current = gaussianBlurMask(current, width, height, config.gaussianKernelSize);
@@ -281,10 +341,16 @@ export function applyMorphologyPipeline(
     }
   }
 
-  return filterConnectedComponentsAndExtractBoxes(
+  const filtered = filterConnectedComponentsAndExtractBoxes(
     current,
     width,
     height,
     config.minComponentArea
   );
+
+  return {
+    cleanedMask: filtered.cleanedMask,
+    boxes: filtered.boxes,
+    rawComponentCount,
+  };
 }

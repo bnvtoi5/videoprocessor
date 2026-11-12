@@ -107,12 +107,15 @@ export function generateAcademicMarkdownReport(
       ? [
           `**Traceable Experiment ID:** \`${groupDLog.experimentId}\` on dataset \`${groupDLog.datasetName}\``,
           '',
-          '| Variant | Bypass Mechanism | IoU | F1 | FPR | Jitter RMS (px) | Translation RMSE (px) | FPS | Latency (ms) |',
-          '|---|---|---|---|---|---|---|---|---|',
-          ...groupDLog.measuredRows.map(
-            (r) =>
-              `| ${r.algorithmLabel} | ${r.bypassNote ?? r.configSummary} | ${fmtPct(r.iou)} | ${fmtPct(r.f1)} | ${fmtPct(r.fpr)} | ${fmtNum(r.jitterRmsPx, 3)} | ${fmtNum(r.translationRmsePx, 3)} | ${r.fps.toFixed(1)} | ${r.meanLatencyMs.toFixed(2)} |`
-          ),
+          '| Variant | Bypass Mechanism | FG Ratio (%) | Flicker (%) | Comp/Frame | Re-measured Jitter (px) | Traj. Jitter (px) | Border Loss (%) | IoU | F1 | FPS | Latency (ms) |',
+          '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
+          ...groupDLog.measuredRows.map((r) => {
+            const borderLoss =
+              r.validAreaPercent !== null && r.validAreaPercent !== undefined
+                ? `${Math.max(0, 100 - r.validAreaPercent).toFixed(2)}%`
+                : 'N/A';
+            return `| ${r.algorithmLabel} | ${r.bypassNote ?? r.configSummary} | ${fmtNum(r.fgRatioPercent, 2, '%')} | ${fmtNum(r.maskFlickerPercent, 2, '%')} | ${fmtNum(r.meanComponentsPerFrame, 1)} | ${fmtNum(r.remeasuredJitterRmsPx, 3)} | ${fmtNum(r.jitterRmsPx, 3)} | ${borderLoss} | ${fmtPct(r.iou)} | ${fmtPct(r.f1)} | ${r.fps.toFixed(1)} | ${r.meanLatencyMs.toFixed(2)} |`;
+          }),
           '',
           `**Empirical Conclusion:** ${groupDLog.conclusionVi}`,
         ].join('\n')
@@ -123,13 +126,13 @@ export function generateAcademicMarkdownReport(
       ? [
           `**Traceable Experiment ID:** \`${groupCLog.experimentId}\` on dataset \`${groupCLog.datasetName}\``,
           '',
-          '| Configuration | Status | IoU | F1 | FPR | PWC Error (%) | Mask Flicker (%) | Valid Area (%) | FPS |',
-          '|---|---|---|---|---|---|---|---|---|',
+          '| Configuration | Status | FG Ratio (%) | Flicker (%) | Comp/Frame | Re-measured Jitter (px) | IoU | F1 | FPR | Valid Area (%) | FPS |',
+          '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|',
           ...groupCLog.measuredRows.map(
             (r) =>
-              `| ${r.algorithmLabel} | ${r.status} | ${fmtPct(r.iou)} | ${fmtPct(r.f1)} | ${fmtPct(r.fpr)} | ${fmtNum(r.pwcErrorPercent, 2, '%')} | ${fmtNum(r.maskFlickerPercent, 2, '%')} | ${fmtNum(r.validAreaPercent, 1, '%')} | ${r.fps.toFixed(1)} |`
+              `| ${r.algorithmLabel} | ${r.status} | ${fmtNum(r.fgRatioPercent, 2, '%')} | ${fmtNum(r.maskFlickerPercent, 2, '%')} | ${fmtNum(r.meanComponentsPerFrame, 1)} | ${fmtNum(r.remeasuredJitterRmsPx, 3)} | ${fmtPct(r.iou)} | ${fmtPct(r.f1)} | ${fmtPct(r.fpr)} | ${fmtNum(r.validAreaPercent, 1, '%')} | ${r.fps.toFixed(1)} |`
           ),
-          '| C4. Motion Estimation → Background Model Compensation → Foreground Extraction | Theoretical Reference | N/A | N/A | N/A | N/A | N/A | N/A | N/A |',
+          '| C4. Motion Estimation → Background Model Compensation → Foreground Extraction | Theoretical Reference | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A | N/A |',
           '',
           `**Note on C4 (Theoretical Reference):** Configuration C4 warps the internal per-pixel Gaussian distribution parameters $(\\mu_{k,t-1}, \\sigma^2_{k,t-1}, w_{k,t-1})$ directly using the inter-frame homography/affine matrix before evaluating $I_t$ (Yang et al., 2019; Chapel & Bouwmans, 2021). Because OpenCV.js encapsulates the C++ \`cv::BackgroundSubtractorMOG2\` internal Gaussian weight buffers privately in WASM linear memory, C4 is documented as a theoretical reference model rather than a fabricated benchmark row.`,
           '',
@@ -140,11 +143,11 @@ export function generateAcademicMarkdownReport(
     '## 13. Empirical Results Summary (All Executed Experiments)',
     allMeasuredRows.length > 0
       ? [
-          '| Experiment ID | Dataset | Algorithm / Variant | IoU | F1 | Jitter RMS (px) | Trans RMSE (px) | FPS | Time (ms) | Status |',
-          '|---|---|---|---|---|---|---|---|---|---|',
+          '| Experiment ID | Dataset | Algorithm / Variant | FG Ratio (%) | Flicker (%) | Comp/Frame | Re-measured Jitter (px) | Traj. Jitter (px) | IoU | F1 | Trans RMSE (px) | FPS | Time (ms) | Status |',
+          '|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|',
           ...allMeasuredRows.map(
             (r) =>
-              `| \`${r.experimentId}\` | \`${r.datasetName}\` | ${r.algorithmLabel} | ${fmtPct(r.iou)} | ${fmtPct(r.f1)} | ${fmtNum(r.jitterRmsPx, 3)} | ${fmtNum(r.translationRmsePx, 3)} | ${r.fps.toFixed(1)} | ${r.meanLatencyMs.toFixed(2)} | ${r.status} |`
+              `| \`${r.experimentId}\` | \`${r.datasetName}\` | ${r.algorithmLabel} | ${fmtNum(r.fgRatioPercent, 2, '%')} | ${fmtNum(r.maskFlickerPercent, 2, '%')} | ${fmtNum(r.meanComponentsPerFrame, 1)} | ${fmtNum(r.remeasuredJitterRmsPx, 3)} | ${fmtNum(r.jitterRmsPx, 3)} | ${fmtPct(r.iou)} | ${fmtPct(r.f1)} | ${fmtNum(r.translationRmsePx, 3)} | ${r.fps.toFixed(1)} | ${r.meanLatencyMs.toFixed(2)} | ${r.status} |`
           ),
         ].join('\n')
       : '*No empirical rows recorded yet.*',

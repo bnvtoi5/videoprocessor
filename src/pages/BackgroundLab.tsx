@@ -225,15 +225,15 @@ export const BackgroundLab: React.FC<BackgroundLabProps> = ({
   return (
     <div className="space-y-5">
       {/* Top Clear Header & Export Buttons */}
-      <div className="bg-[#111827] border border-slate-800 p-4 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-400">
+          <div className="text-[11px] font-mono uppercase tracking-wider text-emerald-700 font-bold">
             KẾT QUẢ 2 · MODULE B: BACKGROUND & FOREGROUND SEPARATION LAB
           </div>
-          <h1 className="text-base font-bold text-slate-100 mt-0.5">
+          <h1 className="text-base font-bold text-slate-900 mt-0.5">
             Kết Quả Tách Lọc Nền & Vật Thể Chuyển Động ({session.metadata.fileName})
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-600 mt-0.5">
             Xem đồng thời 5 màn hình kết quả: Video gốc, Mặt nạ nhị phân (Mask), Tô màu vật thể (Overlay), Chỉ giữ Vật thể (Foreground), và Chỉ giữ Nền tĩnh (Background).
           </p>
         </div>
@@ -300,12 +300,12 @@ export const BackgroundLab: React.FC<BackgroundLabProps> = ({
       </div>
 
       {/* Main Full-Width Video Results Workspace */}
-      <div className="bg-[#111827] border border-slate-800 p-4 space-y-4">
+      <div className="bg-white border border-slate-200 p-4 shadow-xs space-y-4">
         {/* Algorithm Selector Tabs + Playback Transport Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0B0E17] border border-slate-800 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-slate-50 border border-slate-200 p-3">
           {/* 3-Algorithm Selector Buttons */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-xs font-semibold text-slate-400 mr-1">
+            <span className="text-xs font-semibold text-slate-600 mr-1">
               Chọn thuật toán tách nền:
             </span>
             <button
@@ -313,8 +313,8 @@ export const BackgroundLab: React.FC<BackgroundLabProps> = ({
               onClick={() => onSelectMethod('frame_diff')}
               className={`py-1.5 px-3 text-xs font-semibold transition-colors cursor-pointer ${
                 selectedMethod === 'frame_diff'
-                  ? 'bg-cyan-600 text-white'
-                  : 'bg-slate-800 text-slate-300 hover:text-white'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-100'
               }`}
             >
               B1. Frame Diff (Trừ ảnh)
@@ -478,16 +478,23 @@ export const BackgroundLab: React.FC<BackgroundLabProps> = ({
               subtitle="Sau khi lọc Morphology"
             />
           ) : (
-            <div className="bg-[#0B0E17] border border-slate-800 p-4 flex flex-col justify-between text-xs">
+            <div className="bg-slate-50 border border-slate-200 p-4 flex flex-col justify-between text-xs">
               <div>
-                <div className="font-semibold text-emerald-400 border-b border-slate-800 pb-2">
+                <div className="font-bold text-emerald-700 border-b border-slate-200 pb-2">
                   Thông Số Khung Hình Hiện Tại (#{safeIdx + 1})
                 </div>
                 <div className="mt-2.5 space-y-1.5 font-mono text-xs text-slate-300 tabular-nums">
                   <div>Thuật toán: {activeResult?.engineUsed ?? 'Đang khởi tạo'}</div>
                   <div>
-                    Số vùng chuyển động: {currentBoxes.length} (Diện tích ≥{' '}
-                    {morphologyConfig.minComponentArea}px²)
+                    Số vùng liên thông (Before → After Morphology):{' '}
+                    <span className="text-amber-300 font-bold">
+                      {currentMetrics?.rawComponentCount ?? currentBoxes.length}
+                    </span>{' '}
+                    →{' '}
+                    <span className="text-emerald-300 font-bold">
+                      {currentBoxes.length}
+                    </span>{' '}
+                    (Min Area ≥ {morphologyConfig.minComponentArea}px²)
                   </div>
                   <div>
                     Tỷ lệ diện tích vật thể:{' '}
@@ -516,10 +523,10 @@ export const BackgroundLab: React.FC<BackgroundLabProps> = ({
 
         {/* Collapsible Advanced Algorithm & Morphology Controls */}
         {showAdvancedParams && (
-          <div className="bg-[#0B0E17] border border-slate-800 p-4 grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+          <div className="bg-slate-50 border border-slate-200 p-4 grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
             {/* Column 1: Active Algorithm Parameters */}
             <div className="space-y-3">
-              <div className="font-semibold text-cyan-400 border-b border-slate-800 pb-1.5">
+              <div className="font-bold text-blue-700 border-b border-slate-200 pb-1.5">
                 1. Tham Số Thuật Toán ({selectedMethod.toUpperCase()})
               </div>
 
@@ -538,7 +545,7 @@ export const BackgroundLab: React.FC<BackgroundLabProps> = ({
                             .value as FrameDiffParams['referenceMode'],
                         })
                       }
-                      className="w-full bg-[#111827] border border-slate-700 px-2.5 py-1.5 text-xs font-mono text-slate-200"
+                      className="w-full bg-white border border-slate-300 px-2.5 py-1.5 text-xs font-mono text-slate-800"
                     >
                       <option value="first_frame">Khung hình đầu tiên (I_0)</option>
                       <option value="median_first_n">
@@ -882,9 +889,9 @@ export const BackgroundLab: React.FC<BackgroundLabProps> = ({
         {(resultsByMethod.frame_diff ||
           resultsByMethod.mog2 ||
           resultsByMethod.sample_knn) && (
-          <div className="bg-[#0B0E17] border border-slate-800 p-4 space-y-3">
+          <div className="bg-white border border-slate-200 p-4 shadow-xs space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="text-xs font-semibold text-slate-200">
+              <span className="text-xs font-bold text-slate-900">
                 So Sánh Mặt Nạ Nhị Phân Giữa 3 Thuật Toán Tại Khung Hình #{safeIdx + 1}
               </span>
               <span className="text-[11px] font-mono text-slate-400">

@@ -43,13 +43,42 @@ export function gaussianSmooth1D(signal: number[], radius: number): number[] {
 }
 
 /**
+ * Convolves a 1D signal with reflective boundary padding using a uniform Boxcar (Moving-Average) filter of radius R.
+ * Used in Ablation D3 to compare trajectory smoothing strategies (Gaussian vs Moving-Average) under identical warp conditions.
+ */
+export function movingAverageSmooth1D(signal: number[], radius: number): number[] {
+  if (signal.length <= 1 || radius <= 0) {
+    return [...signal];
+  }
+  const r = Math.max(1, Math.round(radius));
+  const windowLen = 2 * r + 1;
+  const n = signal.length;
+  const out = new Array<number>(n);
+
+  for (let i = 0; i < n; i++) {
+    let acc = 0;
+    for (let k = -r; k <= r; k++) {
+      let idx = i + k;
+      if (idx < 0) idx = -idx;
+      if (idx >= n) idx = 2 * n - 2 - idx;
+      idx = Math.max(0, Math.min(n - 1, idx));
+      acc += signal[idx];
+    }
+    out[i] = acc / windowLen;
+  }
+  return out;
+}
+
+/**
  * Accumulates inter-frame transforms into a cumulative camera trajectory,
- * applies Gaussian trajectory smoothing, and computes per-frame corrective transforms.
+ * applies trajectory smoothing (Gaussian, Moving-Average, Rigid-Lock, or Zero-Correction),
+ * and computes per-frame corrective transforms.
  */
 export function computeSmoothedTrajectory(
   transforms: FrameTransform[],
   smoothingRadius: number,
-  smoothRotation = true
+  smoothRotation = true,
+  trajectoryMode: 'gaussian_smooth' | 'moving_average' | 'rigid_lock' | 'zero_correction' = 'gaussian_smooth'
 ): TrajectoryState[] {
   const n = transforms.length;
   if (n === 0) return [];
@@ -71,9 +100,30 @@ export function computeSmoothedTrajectory(
     rawA[i] = accA;
   }
 
-  const smoothX = gaussianSmooth1D(rawX, smoothingRadius);
-  const smoothY = gaussianSmooth1D(rawY, smoothingRadius);
-  const smoothA = smoothRotation ? gaussianSmooth1D(rawA, smoothingRadius) : [...rawA];
+  let smoothX: number[];
+  let smoothY: number[];
+  let smoothA: number[];
+
+  if (trajectoryMode === 'rigid_lock') {
+    // Locks directly to Frame 0 reference without low-pass trajectory smoothing (ΔC = -P_raw)
+    smoothX = new Array<number>(n).fill(0);
+    smoothY = new Array<number>(n).fill(0);
+    smoothA = smoothRotation ? new Array<number>(n).fill(0) : [...rawA];
+  } else if (trajectoryMode === 'zero_correction' || smoothingRadius <= 0) {
+    // Radius 0 convention (P_smooth = P_raw => ΔC = 0)
+    smoothX = [...rawX];
+    smoothY = [...rawY];
+    smoothA = [...rawA];
+  } else if (trajectoryMode === 'moving_average') {
+    // Uniform Boxcar Moving-Average low-pass trajectory smoothing (Ablation D3 alternative strategy)
+    smoothX = movingAverageSmooth1D(rawX, smoothingRadius);
+    smoothY = movingAverageSmooth1D(rawY, smoothingRadius);
+    smoothA = smoothRotation ? movingAverageSmooth1D(rawA, smoothingRadius) : [...rawA];
+  } else {
+    smoothX = gaussianSmooth1D(rawX, smoothingRadius);
+    smoothY = gaussianSmooth1D(rawY, smoothingRadius);
+    smoothA = smoothRotation ? gaussianSmooth1D(rawA, smoothingRadius) : [...rawA];
+  }
 
   const trajectories: TrajectoryState[] = [];
   for (let i = 0; i < n; i++) {
