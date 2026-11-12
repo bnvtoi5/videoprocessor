@@ -15,7 +15,7 @@ Phần mềm chạy thuần phía máy khách (Client-side WebAssembly), **khôn
 Mở **Terminal** (hoặc **Command Prompt / PowerShell** trên Windows) tại thư mục dự án và chạy:
 
 ```bash
-git clone [<link-github-repo-cua-ban>](https://github.com/bnvtoi5/videoprocessor)
+git clone https://github.com/bnvtoi5/videoprocessor
 cd videoprocessor
 npm install
 ```
