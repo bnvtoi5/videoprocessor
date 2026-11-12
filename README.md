@@ -6,8 +6,6 @@
 
 ## 1. Hướng Dẫn Clone Từ GitHub & Cài Đặt Trên Máy Tính Cá Nhân (Windows / macOS / Linux)
 
-Phần mềm chạy thuần phía máy khách (Client-side WebAssembly), **không cần** cài Python, **không cần** cài OpenCV C++ hệ thống hay cơ sở dữ liệu.
-
 ### Bước 1: Cài đặt Node.js
 - Tải và cài đặt **Node.js (bản LTS 18.x, 20.x hoặc 22.x)** tại: [https://nodejs.org](https://nodejs.org)
 
@@ -27,34 +25,9 @@ npm run dev
 Sau đó mở trình duyệt (Chrome, Edge, Brave hoặc Firefox) tại địa chỉ:
 👉 **`http://localhost:3000`**
 
-### Bước 4: Đóng gói bản Production hoặc Chạy Unit Test (Tùy chọn)
-```bash
-# Kiểm tra biên dịch TypeScript & đóng gói ứng dụng
-npm run lint
-npm run build
-
-# Chạy bộ kiểm thử tự động các thuật toán DSP
-npm test
-```
-
 ---
 
-## 2. Hướng Dẫn Đẩy Code Lên GitHub (Push to GitHub)
-
-Nếu bạn tải mã nguồn từ hệ thống về máy tính và muốn đẩy lên GitHub cá nhân:
-
-```bash
-git init
-git add .
-git commit -m "Initial commit: DSP501 Spatiotemporal Video Processing Lab"
-git branch -M main
-git remote add origin https://github.com/<username>/<ten-repo>.git
-git push -u origin main
-```
-
----
-
-## 3. Sơ Đồ Thư Mục Code & Vị Trí Từng Bộ Lọc DSP (`src/`)
+## 2. Sơ Đồ Thư Mục Code & Vị Trí Từng Bộ Lọc DSP (`src/`)
 
 | Nhóm Chức Năng | Bộ Lọc / Thuật Toán Cụ Thể | Đường Dẫn File Code | Hàm Thực Thi Chính |
 | :--- | :--- | :--- | :--- |
