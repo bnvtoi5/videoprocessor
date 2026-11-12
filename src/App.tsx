@@ -97,7 +97,7 @@ export default function App() {
     ...INITIAL_BENCHMARK_PLAYLIST,
   ]);
   const [activeVideoId, setActiveVideoId] = useState<string>(
-    INITIAL_BENCHMARK_PLAYLIST[0]?.id ?? 'videodata_comb_01_shaky_people_pexels4101528.mp4'
+    INITIAL_BENCHMARK_PLAYLIST[0]?.id ?? ''
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
 
@@ -151,6 +151,9 @@ export default function App() {
   >([]);
 
   // Research & Academic Report Lab state
+  const [acceptanceBatchResults, setAcceptanceBatchResults] = useState<
+    import('./components/research/MultiVideoAcceptanceStudio').VideoBatchResult[]
+  >([]);
   const [experimentLogs, setExperimentLogs] = useState<
     TraceableExperimentLogEntry[]
   >([]);
@@ -644,6 +647,8 @@ export default function App() {
                   setSensitivitySweeps((prev) => [...prev, sweep])
                 }
                 playlist={playlist}
+                batchResults={acceptanceBatchResults}
+                onBatchResultsChange={setAcceptanceBatchResults}
                 onToggleVideoSelection={handleToggleVideoSelection}
                 onAddMultipleFiles={handleAddMultipleFiles}
                 onRemoveVideo={handleRemoveVideo}
@@ -700,6 +705,8 @@ export default function App() {
               <ExportCenterPage
                 session={session}
                 playlist={playlist}
+                batchResults={acceptanceBatchResults}
+                onBatchResultsChange={setAcceptanceBatchResults}
                 onNavigate={setActivePage}
                 stabilizationParams={stabilizationParams}
                 frameDiffParams={frameDiffParams}

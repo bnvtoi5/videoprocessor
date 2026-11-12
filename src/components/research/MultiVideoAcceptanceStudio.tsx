@@ -23,11 +23,9 @@ import {
   BarChart3,
   ShieldCheck,
   BookOpen,
-  FileText,
   FileSpreadsheet,
   Image as ImageIcon,
 } from 'lucide-react';
-import { exportAcademicWordReport } from '../../utils/academicDocxExport';
 import { exportAcademicExcelData } from '../../utils/academicExcelExport';
 import {
   exportAllAcademicChartsZip,
@@ -318,6 +316,8 @@ export interface AggregatedComboRow {
 export interface MultiVideoAcceptanceStudioProps {
   currentSession: DecodedVideoSession;
   playlist?: PlaylistVideoItem[];
+  batchResults?: VideoBatchResult[];
+  onBatchResultsChange?: (results: VideoBatchResult[]) => void;
   onToggleVideoSelection?: (id: string) => void;
   onAddMultipleFiles?: (files: FileList | File[]) => Promise<void>;
   onRemoveVideo?: (id: string) => void;
@@ -510,6 +510,8 @@ export const MultiVideoAcceptanceStudio: React.FC<
 > = ({
   currentSession,
   playlist: externalPlaylist,
+  batchResults: externalBatchResults,
+  onBatchResultsChange: externalOnBatchResultsChange,
   onToggleVideoSelection: externalToggleSelection,
   onAddMultipleFiles: externalAddMultipleFiles,
   onRemoveVideo: externalRemoveVideo,
@@ -542,14 +544,25 @@ export const MultiVideoAcceptanceStudio: React.FC<
   const [statusBanner, setStatusBanner] = useState<{
     type: 'info' | 'success' | 'warning' | 'error';
     message: string;
-  } | null>(() => ({
-    type: 'success',
-    message:
-      'Đã nạp sẵn toàn bộ kết quả thực nghiệm của 15 video từ thư mục videodata/ (comb_01..05, bg_01..05, stab_01..05) — khớp 100% với báo cáo Bao_cao_Spatiotemporal_Video_Processing_Lab.docx. Bạn có thể xem ngay bảng số liệu, lọc theo nhóm, xuất báo cáo hoặc bấm chạy trực tiếp từng video!',
-  }));
-  const [batchResults, setBatchResults] = useState<VideoBatchResult[]>(() =>
-    getPrecomputedVideodataBatchResults()
-  );
+  } | null>(null);
+
+  const [internalBatchResults, setInternalBatchResults] = useState<VideoBatchResult[]>([]);
+  const batchResults = externalBatchResults ?? internalBatchResults;
+  const setBatchResults = (
+    updater: VideoBatchResult[] | ((prev: VideoBatchResult[]) => VideoBatchResult[])
+  ) => {
+    if (externalOnBatchResultsChange) {
+      if (typeof updater === 'function') {
+        const next = updater(batchResults);
+        externalOnBatchResultsChange(next);
+      } else {
+        externalOnBatchResultsChange(updater);
+      }
+    } else {
+      setInternalBatchResults(updater);
+    }
+  };
+
 
   // Sub-tab inside Acceptance Studio:
   // 'metrics_tab' = Bảng Số Liệu Nghiệm Thu, Biểu Đồ D0–D6, Công Thức & Log Kiểm Toán
@@ -583,7 +596,7 @@ export const MultiVideoAcceptanceStudio: React.FC<
   const [spotlightRightCode, setSpotlightRightCode] = useState<string>('D0');
   const [exportFeedback, setExportFeedback] = useState<{
     filename: string;
-    format: 'docx' | 'xlsx' | 'png' | 'zip';
+    format: 'xlsx' | 'png' | 'zip';
     timestamp: string;
   } | null>(null);
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -1318,27 +1331,6 @@ export const MultiVideoAcceptanceStudio: React.FC<
     setActiveSlideIndex((prev) => (prev + 1) % demoCarouselVideos.length);
   };
 
-  const handleExportDocx = async () => {
-    if (reportVideos.length === 0 || aggregatedRows.length === 0) return;
-    try {
-      setIsExporting(true);
-      const filename = await exportAcademicWordReport(
-        aggregatedRows,
-        reportVideos,
-        datasetBestSummary
-      );
-      setExportFeedback({
-        filename,
-        format: 'docx',
-        timestamp: new Date().toLocaleTimeString(),
-      });
-    } catch (err) {
-      console.error('Lỗi xuất tài liệu Word DOCX:', err);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const handleExportExcel = () => {
     if (reportVideos.length === 0 || aggregatedRows.length === 0) return;
     try {
@@ -1704,7 +1696,7 @@ export const MultiVideoAcceptanceStudio: React.FC<
             >
               <Table2 className="w-4 h-4" />
               <span>
-                Tab 1: Table 12.x, Biểu Đồ D0–D6 &amp; Xuất Báo Cáo DSP501 ({batchResults.length} Video)
+                Tab 1: Table 12.x, Biểu Đồ D0–D6 &amp; Xuất Số Liệu Excel ({batchResults.length} Video)
               </span>
             </button>
 
@@ -1879,7 +1871,7 @@ export const MultiVideoAcceptanceStudio: React.FC<
                     <div className="flex items-center gap-2">
                       <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-100">
-                        Xuất Tài Liệu Báo Cáo DSP501 (Academic Export Suite)
+                        Xuất Bảng Số Liệu Excel &amp; Bộ Biểu Đồ (PNG 300 DPI)
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-300 mt-0.5">
@@ -1887,38 +1879,17 @@ export const MultiVideoAcceptanceStudio: React.FC<
                     </p>
                   </div>
 
-                  {/* 3 Main Academic Export Buttons + Full Updated Report Link */}
+                  {/* 2 Focused Export Formats: Excel Data and 300 DPI Chart Images */}
                   <div className="flex flex-wrap items-center gap-2">
-                    <a
-                      href="/Bao_cao_Spatiotemporal_Video_Processing_Lab.docx"
-                      download="Bao_cao_Spatiotemporal_Video_Processing_Lab.docx"
-                      className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                      title="Tải file báo cáo gốc đầy đủ 19 mục & phụ lục đã cập nhật số liệu thực nghiệm từ 15 video trong videodata"
-                    >
-                      <Download className="w-3.5 h-3.5 text-amber-100" />
-                      <span>Tải Báo Cáo Đầy Đủ (Bao_cao_..._Lab.docx)</span>
-                    </a>
-
-                    <button
-                      type="button"
-                      disabled={isExporting || reportVideos.length === 0}
-                      onClick={handleExportDocx}
-                      className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                      title="Xuất file Word (.docx) hoàn chỉnh với bảng tổng hợp, bảng chi tiết từng video, phân tích nhận xét và giới hạn ground truth"
-                    >
-                      <FileText className="w-3.5 h-3.5 text-blue-200" />
-                      <span>Export Word Report (.docx)</span>
-                    </button>
-
                     <button
                       type="button"
                       disabled={isExporting || reportVideos.length === 0}
                       onClick={handleExportExcel}
                       className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors shadow-xs"
-                      title="Xuất workbook Excel (.xlsx) gồm đúng 3 sheet: Summary, Per-Video Results, và Metrics Definition"
+                      title="Xuất bảng số liệu thực nghiệm Excel (.xlsx) gồm 3 sheet: Summary, Per-Video Results, và Metrics Definition"
                     >
                       <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-200" />
-                      <span>Export Excel Data (.xlsx)</span>
+                      <span>Xuất Bảng Số Liệu (.xlsx)</span>
                     </button>
 
                     <button
@@ -1929,10 +1900,11 @@ export const MultiVideoAcceptanceStudio: React.FC<
                       title="Xuất trọn bộ 6 biểu đồ học thuật chuẩn 300 DPI dạng file nén .zip"
                     >
                       <ImageIcon className="w-3.5 h-3.5 text-indigo-200" />
-                      <span>Export Charts (.png 300 DPI)</span>
+                      <span>Xuất Bộ Biểu Đồ (.png 300 DPI)</span>
                     </button>
                   </div>
                 </div>
+
 
 
                 {/* Quick Individual Chart Downloads */}

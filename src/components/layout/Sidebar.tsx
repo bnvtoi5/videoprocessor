@@ -41,8 +41,8 @@ const WORKBENCH_NAV_ITEMS: {
   },
   {
     id: 'export_center',
-    label: '3. Xuất Dữ Liệu Báo Cáo',
-    subtitle: 'Word (.docx) · Excel (.xlsx) · Charts (300 DPI)',
+    label: '3. Xuất Số Liệu & Biểu Đồ',
+    subtitle: 'Excel (.xlsx) · Biểu Đồ (PNG 300 DPI)',
     icon: Download,
   },
   {

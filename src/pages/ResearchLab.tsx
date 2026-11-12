@@ -33,6 +33,8 @@ export interface ResearchLabProps {
   sensitivitySweeps: ParameterSensitivitySweepResult[];
   onAppendSensitivitySweep: (sweep: ParameterSensitivitySweepResult) => void;
   playlist?: PlaylistVideoItem[];
+  batchResults?: import('../components/research/MultiVideoAcceptanceStudio').VideoBatchResult[];
+  onBatchResultsChange?: (results: import('../components/research/MultiVideoAcceptanceStudio').VideoBatchResult[]) => void;
   onToggleVideoSelection?: (id: string) => void;
   onAddMultipleFiles?: (files: FileList | File[]) => Promise<void>;
   onRemoveVideo?: (id: string) => void;
@@ -46,6 +48,8 @@ export interface ResearchLabProps {
 export const ResearchLab: React.FC<ResearchLabProps> = ({
   session,
   playlist,
+  batchResults,
+  onBatchResultsChange,
   onToggleVideoSelection,
   onAddMultipleFiles,
   onRemoveVideo,
@@ -55,6 +59,8 @@ export const ResearchLab: React.FC<ResearchLabProps> = ({
       <MultiVideoAcceptanceStudio
         currentSession={session}
         playlist={playlist}
+        batchResults={batchResults}
+        onBatchResultsChange={onBatchResultsChange}
         onToggleVideoSelection={onToggleVideoSelection}
         onAddMultipleFiles={onAddMultipleFiles}
         onRemoveVideo={onRemoveVideo}
